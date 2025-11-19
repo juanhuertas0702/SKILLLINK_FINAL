@@ -164,26 +164,43 @@ export const perfilesAPI = {
 
 // API de Solicitudes
 export const solicitudesAPI = {
+  // Mis solicitudes como cliente
   listar: () =>
     apiRequest('/solicitudes/', {
       method: 'GET',
     }),
 
+  // Solicitudes recibidas como trabajador
+  recibidas: () =>
+    apiRequest('/solicitudes/recibidas/', {
+      method: 'GET',
+    }),
+
+  // Crear solicitud
   crear: (data) =>
     apiRequest('/solicitudes/', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
+  // Obtener solicitud específica
   obtener: (id) =>
     apiRequest(`/solicitudes/${id}/`, {
       method: 'GET',
     }),
 
-  actualizar: (id, data) =>
-    apiRequest(`/solicitudes/${id}/`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
+  // Aceptar solicitud
+  aceptar: (id) =>
+    apiRequest(`/solicitudes/${id}/aceptar/`, {
+      method: 'PATCH',
+      body: JSON.stringify({}),
+    }),
+
+  // Rechazar solicitud
+  rechazar: (id) =>
+    apiRequest(`/solicitudes/${id}/rechazar/`, {
+      method: 'PATCH',
+      body: JSON.stringify({}),
     }),
 };
 

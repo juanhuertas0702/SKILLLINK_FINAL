@@ -70,17 +70,10 @@ class ServicioViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         # -----------------------------------------------------
         # 1) Verificar que el usuario tenga perfil trabajador
-        # Si no existe, crearlo automáticamente
         # -----------------------------------------------------
         perfil = PerfilTrabajador.objects.filter(usuario=self.request.user).first()
         if not perfil:
-            # Crear perfil de trabajador automáticamente
-            categoria = self.request.data.get("categoria", "Otros")
-            perfil = PerfilTrabajador.objects.create(
-                usuario=self.request.user,
-                categoria_principal=categoria,
-                estado="activo"
-            )
+            raise ValidationError("Debes tener un perfil de trabajador para publicar servicios.")
 
         # -----------------------------------------------------
         # 2) Verificar plan de membresía
@@ -89,12 +82,12 @@ class ServicioViewSet(viewsets.ModelViewSet):
         plan = membresia.plan if membresia else "free"
 
         if plan == "free":
-            limite = 4
+            limite = 3
             servicios_publicados = Servicio.objects.filter(trabajador=perfil).count()
 
             if servicios_publicados >= limite:
                 raise ValidationError(
-                    f"Has alcanzado el límite de {limite} servicios con el plan Free. Si quieres publicar más servicios, ¡únete a SkillLink Pro!"
+                    f"Has alcanzado el límite de {limite} servicios con el plan Free."
                 )
 
         # -----------------------------------------------------
@@ -109,7 +102,6 @@ class ServicioViewSet(viewsets.ModelViewSet):
         palabras_encontradas = [p for p in PALABRAS_PROHIBIDAS if p in texto]
 
         if palabras_encontradas:
-            # Si hay palabras prohibidas, poner en pendiente de review
             servicio.palabras_detectadas = True
             servicio.estado_publicacion = "pendiente"
             servicio.save()
@@ -120,17 +112,9 @@ class ServicioViewSet(viewsets.ModelViewSet):
                 estado="pendiente"
             )
         else:
-            # Si NO hay palabras prohibidas, APROBAR AUTOMÁTICAMENTE
             servicio.palabras_detectadas = False
             servicio.estado_publicacion = "aprobado"
             servicio.save()
-            
-            # Crear registro en moderación como "aprobado automáticamente"
-            Moderacion.objects.create(
-                servicio=servicio,
-                palabras_detectadas=None,
-                estado="aprobado"
-            )
 
         return servicio
 

@@ -25,11 +25,10 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
     """Serializer para registrar usuarios nuevos (registro local, no Google)."""
 
     password = serializers.CharField(write_only=True, min_length=6)
-    user = UsuarioSerializer(read_only=True, source='*')
 
     class Meta:
         model = Usuario
-        fields = ["id_usuario", "nombre", "email", "password", "user"]
+        fields = ["id_usuario", "nombre", "email", "password"]
 
     def create(self, validated_data):
         # Siempre se crea como usuario normal, metodo_registro = local

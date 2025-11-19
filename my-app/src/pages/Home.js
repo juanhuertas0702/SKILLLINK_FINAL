@@ -6,7 +6,7 @@ import SearchBar from '../components/SearchBar';
 import ServiceCard from '../components/ServiceCard';
 import FilterModal from '../components/FilterModal';
 import '../styles/global.css';
-import { serviciosAPI } from '../config/api';
+import { serviciosAPI, solicitudesAPI } from '../config/api';
 
 // Importa las imágenes de servicios
 import plomeroImg from '../assets/images/plomero.png';
@@ -123,9 +123,26 @@ export default function Home() {
       alert('Por favor inicia sesión para contactar con este servicio');
       navigate('/login');
     } else {
-      setSelectedService(service);
-      // Navegar a mensajes y pasar el servicio como estado
-      navigate('/mensajes', { state: { service } });
+      // Crear solicitud sin horarios (primer contacto)
+      createAndContactService(service);
+    }
+  };
+
+  const createAndContactService = async (service) => {
+    try {
+      const solicitudData = {
+        servicio: service.id,
+        // Los horarios son opcionales - se negocia en Mensajes
+      };
+      
+      const newSolicitud = await solicitudesAPI.crear(solicitudData);
+      console.log('✅ Solicitud creada:', newSolicitud);
+      
+      // Navegar a mensajes con la solicitud
+      navigate('/mensajes', { state: { solicitud: newSolicitud, service } });
+    } catch (err) {
+      console.error('❌ Error creando solicitud:', err);
+      alert('No se pudo crear la solicitud: ' + err.message);
     }
   };
 
