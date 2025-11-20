@@ -4,6 +4,7 @@ from .serializers import CalificacionSerializer
 from .filters import CalificacionFilter
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.db import models
 
 class CrearCalificacionView(generics.CreateAPIView):
     serializer_class = CalificacionSerializer
@@ -16,9 +17,9 @@ class CrearCalificacionView(generics.CreateAPIView):
         if solicitud.cliente != self.request.user:
             raise serializers.ValidationError("No puedes calificar una solicitud que no es tuya.")
 
-        # Solo se puede calificar si está completada
-        if solicitud.estado != "completada":
-            raise serializers.ValidationError("Solo puedes calificar solicitudes completadas.")
+        # Solo se puede calificar si está finalizada
+        if solicitud.estado != "finalizada":
+            raise serializers.ValidationError("Solo puedes calificar solicitudes finalizadas.")
 
         # Validar que no exista ya una calificación para esta solicitud
         if hasattr(solicitud, 'calificacion'):

@@ -169,6 +169,16 @@ export default function MisServicios() {
                     <span className="precio-valor">${servicio.precio}</span>
                   </div>
 
+                  <div className="servicio-rating">
+                    <span className="rating-label">Tu Calificación:</span>
+                    <div className="rating-stars">
+                      {renderStars(servicio.trabajador_calificacion || 0)}
+                    </div>
+                    <span className="rating-value">
+                      {servicio.trabajador_calificacion ? `${servicio.trabajador_calificacion.toFixed(1)}/5` : 'Sin calificaciones'}
+                    </span>
+                  </div>
+
                   <div className="servicio-footer">
                     <div className="servicio-actions">
                       <button 

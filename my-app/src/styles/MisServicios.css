@@ -160,6 +160,52 @@
   color: #3b82f6;
 }
 
+.servicio-rating {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: #fffbeb;
+  border-radius: 8px;
+  border-left: 3px solid #fbbf24;
+  flex-wrap: wrap;
+}
+
+.rating-label {
+  font-size: 0.875rem;
+  color: #92400e;
+  font-weight: 600;
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+.rating-stars {
+  display: flex;
+  gap: 2px;
+}
+
+.rating-stars .star {
+  width: 16px;
+  height: 16px;
+}
+
+.rating-stars .star-filled {
+  color: #fbbf24;
+  fill: #fbbf24;
+}
+
+.rating-stars .star-empty {
+  color: #d1d5db;
+}
+
+.rating-value {
+  font-size: 0.875rem;
+  color: #d97706;
+  margin-left: auto;
+  font-weight: 700;
+}
+
 .servicio-footer {
   margin-top: auto;
 }

@@ -90,6 +90,26 @@
   border-left: 4px solid #3b82f6;
 }
 
+.chat-item.chat-finalized {
+  opacity: 0.85;
+  background: #f0fdf4;
+}
+
+.chat-item.chat-finalized:hover {
+  background: #e8fdf3;
+}
+
+.estado-badge-finalizado {
+  display: inline-block;
+  background: #10b981;
+  color: white;
+  font-size: 0.65rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  margin-left: auto;
+}
+
 .chat-item-avatar {
   width: 40px;
   height: 40px;
@@ -254,6 +274,48 @@
   justify-content: space-between;
   align-items: center;
   background: white;
+}
+
+.chat-header-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.btn-rate-service {
+  background: none;
+  border: none;
+  color: #f59e0b;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.btn-rate-service:hover {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.btn-finish-work {
+  background: none;
+  border: none;
+  color: #10b981;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.btn-finish-work:hover {
+  background: #d1fae5;
+  color: #059669;
 }
 
 .btn-delete-chat {

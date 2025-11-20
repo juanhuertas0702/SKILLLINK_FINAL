@@ -208,6 +208,13 @@ export const solicitudesAPI = {
       body: JSON.stringify({}),
     }),
 
+  // Finalizar solicitud
+  finalizar: (id) =>
+    apiRequest(`/solicitudes/${id}/finalizar/`, {
+      method: 'PATCH',
+      body: JSON.stringify({}),
+    }),
+
   // Eliminar solicitud/chat
   eliminar: (id) =>
     apiRequest(`/solicitudes/${id}/`, {
@@ -280,6 +287,25 @@ export const disponibilidadAPI = {
     }),
 };
 
+// API de Calificaciones
+export const calificacionesAPI = {
+  crear: (datos) =>
+    apiRequest('/calificaciones/crear/', {
+      method: 'POST',
+      body: JSON.stringify(datos),
+    }),
+
+  listar: () =>
+    apiRequest('/calificaciones/', {
+      method: 'GET',
+    }),
+
+  obtener: (id) =>
+    apiRequest(`/calificaciones/${id}/`, {
+      method: 'GET',
+    }),
+};
+
 export default {
   authAPI,
   serviciosAPI,
@@ -287,4 +313,5 @@ export default {
   solicitudesAPI,
   chatAPI,
   disponibilidadAPI,
+  calificacionesAPI,
 };

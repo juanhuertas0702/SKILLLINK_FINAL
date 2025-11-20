@@ -65,6 +65,57 @@ class SolicitudViewSet(viewsets.ModelViewSet):
         solicitud.save()
         return Response(SolicitudSerializer(solicitud).data)
 
+    # Acción para aceptar solicitud (alias corto)
+    @action(detail=True, methods=['patch'])
+    def aceptar(self, request, pk=None):
+        solicitud = self.get_object()
+        
+        # Validar que sea el trabajador quien responde
+        if not hasattr(request.user, 'perfil_trabajador') or \
+           solicitud.trabajador != request.user.perfil_trabajador:
+            return Response(
+                {'error': 'No tienes permiso para responder esta solicitud.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        solicitud.estado = 'aceptada'
+        solicitud.save()
+        return Response(SolicitudSerializer(solicitud).data)
+
+    # Acción para rechazar solicitud
+    @action(detail=True, methods=['patch'])
+    def rechazar(self, request, pk=None):
+        solicitud = self.get_object()
+        
+        # Validar que sea el trabajador quien responde
+        if not hasattr(request.user, 'perfil_trabajador') or \
+           solicitud.trabajador != request.user.perfil_trabajador:
+            return Response(
+                {'error': 'No tienes permiso para responder esta solicitud.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        solicitud.estado = 'rechazada'
+        solicitud.save()
+        return Response(SolicitudSerializer(solicitud).data)
+
+    # Acción para marcar como finalizada
+    @action(detail=True, methods=['patch'])
+    def finalizar(self, request, pk=None):
+        solicitud = self.get_object()
+        
+        # Validar que sea el trabajador quien finaliza
+        if not hasattr(request.user, 'perfil_trabajador') or \
+           solicitud.trabajador != request.user.perfil_trabajador:
+            return Response(
+                {'error': 'No tienes permiso para finalizar esta solicitud.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        solicitud.estado = 'finalizada'
+        solicitud.save()
+        return Response(SolicitudSerializer(solicitud).data)
+
     def destroy(self, request, *args, **kwargs):
         """
         Permitir que solo el cliente o el trabajador puedan eliminar una solicitud.

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext'; // Importamos Auth
 import Header from '../components/Header';
-import { authAPI, chatAPI } from '../config/api';
+import CalificacionModal from '../components/CalificacionModal';
+import { authAPI, chatAPI, calificacionesAPI } from '../config/api';
 import '../styles/Mensajes.css';
 
 export default function Mensajes() {
@@ -21,6 +22,8 @@ export default function Mensajes() {
   const [newMessage, setNewMessage] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [esTrabajador, setEsTrabajador] = useState(false);
+  const [showCalificacionModal, setShowCalificacionModal] = useState(false);
+  const [existeCalificacion, setExisteCalificacion] = useState(false);
 
   // Cargar datos al iniciar
   useEffect(() => {
@@ -60,8 +63,8 @@ export default function Mensajes() {
       // 1. Pendientes -> Pestaña Solicitudes
       const pendientes = lista.filter(item => item.estado === 'pendiente');
       
-      // 2. Aceptadas -> Pestaña Chats
-      const aceptadas = lista.filter(item => item.estado === 'aceptada');
+      // 2. Aceptadas + Finalizadas -> Pestaña Chats (para poder ver y calificar)
+      const aceptadas = lista.filter(item => item.estado === 'aceptada' || item.estado === 'finalizada');
 
       setRequests(pendientes);
       setConversations(aceptadas);
@@ -77,6 +80,7 @@ export default function Mensajes() {
   useEffect(() => {
     if (selectedItem && activeTab === 'chats') {
       cargarMensajes(selectedItem.id);
+      verificarCalificacion(selectedItem.id);
     }
   }, [selectedItem, activeTab]);
 
@@ -91,6 +95,19 @@ export default function Mensajes() {
     } catch (error) {
       console.error('Error cargando mensajes:', error);
       setMessages([]);
+    }
+  };
+
+  // Verificar si el chat ya tiene calificación
+  const verificarCalificacion = async (solicitudId) => {
+    try {
+      const calificaciones = await calificacionesAPI.listar();
+      const calificacionesArray = Array.isArray(calificaciones) ? calificaciones : calificaciones.results || [];
+      const existente = calificacionesArray.some(cal => cal.solicitud === solicitudId);
+      setExisteCalificacion(existente);
+    } catch (error) {
+      console.error('Error verificando calificación:', error);
+      setExisteCalificacion(false);
     }
   };
 
@@ -187,6 +204,48 @@ export default function Mensajes() {
     }
   };
 
+  // Manejar envío de calificación
+  const handleCalificacionSubmit = async (datos) => {
+    try {
+      await calificacionesAPI.crear(datos);
+      setExisteCalificacion(true);
+      setShowCalificacionModal(false);
+      alert('¡Gracias por tu calificación!');
+    } catch (error) {
+      throw error;
+    }
+  };
+
+  // Finalizar trabajo (solo para trabajadores)
+  const handleFinalizarTrabajo = async (id) => {
+    if (!window.confirm('¿Marcar este trabajo como finalizado? El cliente podrá calificarte después.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/solicitudes/${id}/finalizar/`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({})
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Error al finalizar trabajo');
+      }
+
+      alert('✅ Trabajo marcado como finalizado');
+      fetchData();
+      setSelectedItem(null);
+
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
   const renderMainContent = () => {
     if (!selectedItem) {
       return (
@@ -260,18 +319,42 @@ export default function Mensajes() {
               <p className="service-tag">{selectedItem.titulo_servicio}</p>
             </div>
           </div>
-          <button
-            className="btn-delete-chat"
-            onClick={() => handleDeleteChat(selectedItem.id)}
-            title="Eliminar chat"
-          >
-            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
-              <polyline points="3 6 5 6 21 6"></polyline>
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-              <line x1="10" y1="11" x2="10" y2="17"></line>
-              <line x1="14" y1="11" x2="14" y2="17"></line>
-            </svg>
-          </button>
+          <div className="chat-header-actions">
+            {selectedItem.estado === 'aceptada' && esTrabajador && (
+              <button
+                className="btn-finish-work"
+                onClick={() => handleFinalizarTrabajo(selectedItem.id)}
+                title="Marcar trabajo como finalizado"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41L9 16.17z"></path>
+                </svg>
+              </button>
+            )}
+            {selectedItem.estado === 'finalizada' && !existeCalificacion && (
+              <button
+                className="btn-rate-service"
+                onClick={() => setShowCalificacionModal(true)}
+                title="Calificar servicio"
+              >
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                  <polygon points="12 2 15.09 10.26 24 10.35 17.77 16.01 19.85 24.02 12 18.54 4.15 24.02 6.23 16.01 0 10.35 8.91 10.26 12 2"></polygon>
+                </svg>
+              </button>
+            )}
+            <button
+              className="btn-delete-chat"
+              onClick={() => handleDeleteChat(selectedItem.id)}
+              title="Eliminar chat"
+            >
+              <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                <line x1="10" y1="11" x2="10" y2="17"></line>
+                <line x1="14" y1="11" x2="14" y2="17"></line>
+              </svg>
+            </button>
+          </div>
         </div>
 
         <div className="messages-list">
@@ -366,7 +449,7 @@ export default function Mensajes() {
                   conversations.map(chat => (
                     <div 
                       key={chat.id} 
-                      className={`chat-item ${selectedItem?.id === chat.id ? 'selected' : ''}`}
+                      className={`chat-item ${selectedItem?.id === chat.id ? 'selected' : ''} ${chat.estado === 'finalizada' ? 'chat-finalized' : ''}`}
                       onClick={() => setSelectedItem(chat)}
                     >
                       <div className="chat-item-avatar">
@@ -376,6 +459,9 @@ export default function Mensajes() {
                         <h4>{chat.nombre_cliente}</h4>
                         <p>{chat.titulo_servicio}</p>
                       </div>
+                      {chat.estado === 'finalizada' && (
+                        <span className="estado-badge-finalizado">Finalizado</span>
+                      )}
                     </div>
                   ))
                 )
@@ -409,6 +495,15 @@ export default function Mensajes() {
 
         </div>
       </div>
+      
+      {/* Modal de Calificación */}
+      {showCalificacionModal && selectedItem && (
+        <CalificacionModal
+          solicitud={selectedItem}
+          onClose={() => setShowCalificacionModal(false)}
+          onSubmit={handleCalificacionSubmit}
+        />
+      )}
     </div>
   );
 }

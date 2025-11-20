@@ -56,7 +56,7 @@ export default function ServiceCard({ service, onContactClick }) {
           <div className="rating-stars">
             {renderStars(service.rating)}
           </div>
-          <span className="rating-value">({service.rating})</span>
+          <span className="rating-value">{service.rating.toFixed(1)}/5</span>
         </div>
 
         <button onClick={onContactClick} className="contact-button" disabled={!service.available}>

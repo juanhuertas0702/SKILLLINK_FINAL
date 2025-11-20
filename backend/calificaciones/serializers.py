@@ -18,4 +18,4 @@ class CalificacionSerializer(serializers.ModelSerializer):
             "comentario",
             "fecha"
         ]
-        read_only_fields = ["fecha", "cliente", "trabajador", "cliente_nombre", "trabajador_nombre"]
+        read_only_fields = ["id_calificacion", "fecha", "cliente", "trabajador", "cliente_nombre", "trabajador_nombre"]
