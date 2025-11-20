@@ -57,8 +57,8 @@ export default function Login() {
       setLoading(true);
       try {
         console.log('🔄 Intentando login con:', formData.email);
-        
-        const response = await fetch('http://localhost:8000/api/usuarios/login/', {
+
+        const response = await fetch('http://localhost:8000/api/auth/token/', { // ✅ URL Correcta
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

@@ -5,111 +5,60 @@ import Header from '../components/Header';
 import SearchBar from '../components/SearchBar';
 import ServiceCard from '../components/ServiceCard';
 import FilterModal from '../components/FilterModal';
+// ✅ IMPORTAR EL NUEVO MODAL
+import SolicitarModal from '../components/SolicitarModal'; 
 import '../styles/global.css';
-import { serviciosAPI, solicitudesAPI } from '../config/api';
 
-// Importa las imágenes de servicios
 import plomeroImg from '../assets/images/plomero.png';
 import carpinteroImg from '../assets/images/carpintero.png';
 import meseroImg from '../assets/images/mesero.png';
-// Agrega más importaciones según tus imágenes
 
 export default function Home() {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-  const [showFilterModal, setShowFilterModal] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedService, setSelectedService] = useState(null);
+  const { isAuthenticated, user } = useAuth();
   
-  // Estado de los filtros
+  // Estados
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  
+  // ✅ NUEVOS ESTADOS PARA EL MODAL DE SOLICITUD
+  const [showSolicitarModal, setShowSolicitarModal] = useState(false);
+  const [selectedService, setSelectedService] = useState(null);
+
+  const [searchQuery, setSearchQuery] = useState('');
+  const [services, setServices] = useState([]); 
+  const [loading, setLoading] = useState(true);
+  
   const [filters, setFilters] = useState({
     showAvailable: true,
     showOccupied: true,
     minRating: 0
   });
 
-  // Datos de servicios locales (fallback)
-  const defaultServices = [
-    {
-      id: 1,
-      title: 'Arreglo de lavadoras',
-      category: 'Plomero',
-      rating: 4.5,
-      available: true,
-      image: plomeroImg,
-      usuario: { nombre: 'Carlos Martínez', email: 'carlos@example.com' }
-    },
-    {
-      id: 2,
-      title: 'Reparación de muebles',
-      category: 'Carpintero',
-      rating: 4.8,
-      available: false,
-      image: carpinteroImg,
-      usuario: { nombre: 'Juan Rodríguez', email: 'juan@example.com' }
-    },
-    {
-      id: 3,
-      title: 'Servicio de mesero',
-      category: 'Mesero',
-      rating: 4.3,
-      available: true,
-      image: meseroImg,
-      usuario: { nombre: 'María López', email: 'maria@example.com' }
-    },
-    {
-      id: 4,
-      title: 'Instalación de tuberías',
-      category: 'Plomero',
-      rating: 4.7,
-      available: true,
-      image: plomeroImg,
-      usuario: { nombre: 'Pedro González', email: 'pedro@example.com' }
-    },
-    {
-      id: 5,
-      title: 'Construcción de closets',
-      category: 'Carpintero',
-      rating: 4.9,
-      available: true,
-      image: carpinteroImg,
-      usuario: { nombre: 'Luis Hernández', email: 'luis@example.com' }
-    },
-    {
-      id: 6,
-      title: 'Servicio de eventos',
-      category: 'Mesero',
-      rating: 4.6,
-      available: false,
-      image: meseroImg,
-      usuario: { nombre: 'Ana García', email: 'ana@example.com' }
-    }
-  ];
-
-  // Cargar servicios del backend
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        setLoading(true);
-        console.log('🔄 Iniciando carga de servicios públicos...');
+        const response = await fetch('http://localhost:8000/api/servicios/publicos/');
+        if (!response.ok) throw new Error('Error al cargar servicios');
+        const data = await response.json();
+        const listaServicios = data.results ? data.results : data;
+        const imagenes = [plomeroImg, carpinteroImg, meseroImg];
         
-        // Usar endpoint de servicios públicos (sin autenticación)
-        const data = await serviciosAPI.listarPublicos();
-        console.log('✅ Servicios públicos recibidos del backend:', data);
-        
-        if (Array.isArray(data) && data.length > 0) {
-          setServices(data);
-        } else {
-          console.log('ℹ️ Backend vacío, usando datos locales');
-          setServices(defaultServices);
-        }
-      } catch (err) {
-        console.error('❌ Error cargando servicios del backend:', err.message);
-        console.log('ℹ️ Usando datos locales como fallback');
-        // Usar datos locales como fallback
-        setServices(defaultServices);
+        const formattedServices = listaServicios.map((item, index) => ({
+          id: item.id_servicio,
+          title: item.titulo,
+          description: item.descripcion,
+          price: item.precio,
+          rating: item.trabajador_calificacion || 5.0, 
+          image: item.foto_servicio || imagenes[index % 3], 
+          available: true,
+          category: item.categoria,
+          workerName: item.trabajador_nombre,
+          ownerId: item.owner_id 
+        }));
+
+        setServices(formattedServices);
+      } catch (error) {
+        console.error("Error fetching services:", error);
       } finally {
         setLoading(false);
       }
@@ -118,82 +67,44 @@ export default function Home() {
     fetchServices();
   }, []);
 
-  const handleContactClick = (service) => {
-    if (!isAuthenticated) {
-      alert('Por favor inicia sesión para contactar con este servicio');
-      navigate('/login');
-    } else {
-      // Crear solicitud sin horarios (primer contacto)
-      createAndContactService(service);
-    }
-  };
-
-  const createAndContactService = async (service) => {
-    try {
-      const solicitudData = {
-        servicio: service.id,
-        // Los horarios son opcionales - se negocia en Mensajes
-      };
-      
-      const newSolicitud = await solicitudesAPI.crear(solicitudData);
-      console.log('✅ Solicitud creada:', newSolicitud);
-      
-      // Navegar a mensajes con la solicitud
-      navigate('/mensajes', { state: { solicitud: newSolicitud, service } });
-    } catch (err) {
-      console.error('❌ Error creando solicitud:', err);
-      alert('No se pudo crear la solicitud: ' + err.message);
-    }
-  };
-
-  const handleAuthClick = () => {
-    navigate('/login');
-  };
-
-  const handleFilterClick = () => {
-    setShowFilterModal(true);
-  };
-
-  const handleCloseFilterModal = () => {
-    setShowFilterModal(false);
-  };
-
-  const handleFilterChange = (filterName, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [filterName]: value
-    }));
-  };
-
-  const handleApplyFilters = () => {
-    setShowFilterModal(false);
-  };
-
-  const handleClearFilters = () => {
-    setFilters({
-      showAvailable: true,
-      showOccupied: true,
-      minRating: 0
-    });
-  };
-
-  // Función para filtrar servicios según la búsqueda y filtros
-  const filteredServices = services.filter((service) => {
-    const searchLower = searchQuery.toLowerCase();
+  const filteredServices = services.filter(service => {
     const matchesSearch = 
-      service.title.toLowerCase().includes(searchLower) ||
-      service.category.toLowerCase().includes(searchLower);
-    
-    // Filtro de disponibilidad
+      service.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      service.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const isAvailable = service.available === true;
     const matchesAvailability = 
-      (filters.showAvailable && service.available) ||
-      (filters.showOccupied && !service.available);
-    
-    // Filtro de calificación
+      (filters.showAvailable && isAvailable) ||
+      (filters.showOccupied && !isAvailable);
     const matchesRating = service.rating >= filters.minRating;
-    
     return matchesSearch && matchesAvailability && matchesRating;
   });
+
+  const handleFilterClick = () => setShowFilterModal(true);
+  const handleCloseFilterModal = () => setShowFilterModal(false);
+  const handleFilterChange = (newFilters) => setFilters(newFilters);
+  const handleApplyFilters = () => setShowFilterModal(false);
+
+  // ✅ LÓGICA DEL BOTÓN CONTACTAR
+  const handleContactClick = (service) => {
+    if (!isAuthenticated) {
+      alert("🔒 Para contactar a un profesional, por favor inicia sesión.");
+      navigate('/login');
+      return;
+    }
+
+    // Validación: No contactarse a sí mismo
+    // Ajustamos para leer el ID correctamente según como venga del backend/token
+    const myId = user?.user_id || user?.id_usuario || user?.id;
+    
+    if (myId && service.ownerId && String(myId) === String(service.ownerId)) {
+      alert("⚠️ No puedes contactarte a ti mismo. ¡Es tu propio servicio!");
+      return;
+    }
+
+    // ✅ ABRIR EL MODAL
+    setSelectedService(service);
+    setShowSolicitarModal(true);
+  };
 
   return (
     <div className="App">
@@ -207,9 +118,7 @@ export default function Home() {
 
       <div className="services-grid">
         {loading ? (
-          <div className="loading">
-            <p>Cargando servicios...</p>
-          </div>
+          <div className="loading"><p>Cargando servicios disponibles...</p></div>
         ) : filteredServices.length > 0 ? (
           filteredServices.map((service) => (
             <ServiceCard
@@ -220,15 +129,13 @@ export default function Home() {
           ))
         ) : (
           <div className="no-results">
-            <p className="no-results-text">
-              No se encontraron servicios que coincidan con "{searchQuery}"
-            </p>
-            <button 
-              className="clear-search-button"
-              onClick={() => setSearchQuery('')}
-            >
-              Limpiar búsqueda
-            </button>
+             {services.length === 0 && searchQuery === '' ? (
+              <div className="empty-state">
+                <p className="no-results-text">¡Aún no hay servicios publicados!</p>
+              </div>
+            ) : (
+              <p className="no-results-text">No se encontraron servicios para "{searchQuery}"</p>
+            )}
           </div>
         )}
       </div>
@@ -239,7 +146,13 @@ export default function Home() {
         filters={filters}
         onFilterChange={handleFilterChange}
         onApplyFilters={handleApplyFilters}
-        onClearFilters={handleClearFilters}
+      />
+
+      {/* ✅ AQUÍ ESTABA LO QUE FALTABA: Renderizar el Modal de Solicitud */}
+      <SolicitarModal 
+        isOpen={showSolicitarModal}
+        onClose={() => setShowSolicitarModal(false)}
+        servicio={selectedService}
       />
     </div>
   );

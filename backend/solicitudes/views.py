@@ -1,106 +1,66 @@
-from rest_framework import generics, permissions, status
+from rest_framework import viewsets, permissions, status, exceptions
+from rest_framework.decorators import action
 from rest_framework.response import Response
-from rest_framework.exceptions import ValidationError
-
+from django.db import models
 from .models import Solicitud
-from .serializers import SolicitudSerializer
-from servicios.models import Servicio
-from disponibilidad.models import Disponibilidad
+from .serializers import SolicitudSerializer, CrearSolicitudSerializer
 
-
-class CrearSolicitudView(generics.CreateAPIView):
-    serializer_class = SolicitudSerializer
+class SolicitudViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
+    
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return CrearSolicitudSerializer
+        return SolicitudSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        
+        # Si el usuario tiene perfil de trabajador, ve las solicitudes que LE han hecho
+        # Y TAMBIÉN las que él ha hecho como cliente
+        qs = Solicitud.objects.filter(cliente=user)
+        
+        if hasattr(user, 'perfil_trabajador'):
+            qs_trabajador = Solicitud.objects.filter(trabajador=user.perfil_trabajador)
+            qs = qs | qs_trabajador # Unimos ambas listas (Enviadas + Recibidas)
+            
+        return qs.distinct().order_by('-fecha_solicitud')
 
     def perform_create(self, serializer):
+        servicio = serializer.validated_data['servicio']
         cliente = self.request.user
-        servicio = serializer.validated_data["servicio"]
-        dia = serializer.validated_data.get("dia")
-        hora_inicio = serializer.validated_data.get("hora_inicio")
-        hora_fin = serializer.validated_data.get("hora_fin")
+        
+        # 1. Validar que no se solicite a sí mismo
+        if servicio.trabajador.usuario == cliente:
+            raise exceptions.ValidationError("No puedes solicitar tu propio servicio.")
 
-        # 1) No puedes solicitar tu propio servicio
-        trabajador_usuario = servicio.trabajador.usuario
-        if trabajador_usuario == cliente:
-            raise ValidationError("No puedes solicitar tu propio servicio.")
-
-        # 2) Solo servicios APROBADOS se pueden contratar
-        if servicio.estado_publicacion != "aprobado":
-            raise ValidationError("Solo puedes solicitar servicios que estén aprobados.")
-
-        # 3) Validar disponibilidad
-        existe_dispo = Disponibilidad.objects.filter(
-            trabajador=servicio.trabajador,
-            dia=dia,
-            hora_inicio__lte=hora_inicio,
-            hora_fin__gte=hora_fin,
-        ).exists()
-
-        if not existe_dispo:
-            raise ValidationError("El trabajador no está disponible en el horario seleccionado.")
-
-        # 4) Crear la solicitud - CORREGIDO: usar servicio.trabajador (PerfilTrabajador)
+        # 2. Guardar la solicitud asignando automáticamente el trabajador dueño del servicio
         serializer.save(
             cliente=cliente,
-            trabajador=servicio.trabajador,  # ✅ Ya es PerfilTrabajador
-            estado="pendiente"
+            trabajador=servicio.trabajador
         )
 
-
-class MisSolicitudesClienteView(generics.ListAPIView):
-    """
-    Lista de solicitudes creadas por el cliente actual.
-    """
-    serializer_class = SolicitudSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        return Solicitud.objects.filter(cliente=self.request.user).select_related("servicio", "trabajador")
-
-
-class SolicitudesTrabajadorView(generics.ListAPIView):
-    """
-    Lista de solicitudes donde el usuario actual es el trabajador.
-    """
-    serializer_class = SolicitudSerializer
-    permission_classes = [permissions.IsAuthenticated]
-
-    def get_queryset(self):
-        # CORREGIDO: trabajador.usuario es el Usuario
-        return Solicitud.objects.filter(trabajador__usuario=self.request.user).select_related("servicio", "cliente")
-
-
-class CambiarEstadoSolicitudView(generics.UpdateAPIView):
-    """
-    Permite SOLO al trabajador cambiar el estado de la solicitud.
-    Estados: pendiente → aceptada/rechazada → completada
-    """
-    serializer_class = SolicitudSerializer
-    permission_classes = [permissions.IsAuthenticated]
-    queryset = Solicitud.objects.all()
-    lookup_field = "id_solicitud"
-
-    def update(self, request, *args, **kwargs):
+    # Acción personalizada para que el trabajador responda
+    @action(detail=True, methods=['post'])
+    def responder(self, request, pk=None):
         solicitud = self.get_object()
-        nuevo_estado = request.data.get("estado")
-
-        # Solo el trabajador dueño puede cambiar el estado
-        if solicitud.trabajador.usuario != request.user:
-            return Response({"error": "No autorizado. Solo el trabajador puede cambiar el estado."}, status=status.HTTP_403_FORBIDDEN)
-
-        # Validar transiciones de estado
-        if solicitud.estado == "pendiente" and nuevo_estado not in ["aceptada", "rechazada"]:
-            return Response({"error": "Una solicitud pendiente solo puede ser aceptada o rechazada"}, status=status.HTTP_400_BAD_REQUEST)
+        nuevo_estado = request.data.get('estado')
         
-        if solicitud.estado == "aceptada" and nuevo_estado != "completada":
-            return Response({"error": "Una solicitud aceptada solo puede marcarse como completada"}, status=status.HTTP_400_BAD_REQUEST)
-        
-        if solicitud.estado in ["rechazada", "completada", "cancelada"]:
-            return Response({"error": "No puedes cambiar el estado de una solicitud finalizada"}, status=status.HTTP_400_BAD_REQUEST)
+        # Validar estado correcto
+        if nuevo_estado not in ['aceptada', 'rechazada']:
+            return Response(
+                {'error': 'Estado inválido. Use "aceptada" o "rechazada".'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # Validar que sea el trabajador quien responde
+        if not hasattr(request.user, 'perfil_trabajador') or \
+           solicitud.trabajador != request.user.perfil_trabajador:
+            return Response(
+                {'error': 'No tienes permiso para responder esta solicitud.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
 
         solicitud.estado = nuevo_estado
         solicitud.save()
-
         return Response(SolicitudSerializer(solicitud).data)
-
-

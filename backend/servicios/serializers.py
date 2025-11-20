@@ -31,6 +31,8 @@ class ServicioPublicoSerializer(serializers.ModelSerializer):
     trabajador_experiencia = serializers.CharField(source="trabajador.experiencia", read_only=True)
     trabajador_categoria = serializers.CharField(source="trabajador.categoria_principal", read_only=True)
 
+    owner_id = serializers.ReadOnlyField(source='trabajador.usuario.id_usuario')
+
     class Meta:
         model = Servicio
         fields = [
@@ -45,6 +47,7 @@ class ServicioPublicoSerializer(serializers.ModelSerializer):
             "trabajador_experiencia",
             "trabajador_categoria",
             "fecha_publicacion",
+            "owner_id"
         ]
 
     def get_trabajador_calificacion(self, obj):

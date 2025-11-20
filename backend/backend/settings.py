@@ -96,26 +96,18 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'skilllink_db',
-        'USER': 'skilllink_user',
-        'PASSWORD': 'joanju2025',  # la contraseña que pusiste
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-            'charset': 'utf8mb4',
-        },
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
 
 # Desactivar verificación de versión y RETURNING
-from django.db.backends.mysql import features
-features.DatabaseFeatures.can_return_columns_from_insert = False
+#from django.db.backends.mysql import features
+#features.DatabaseFeatures.can_return_columns_from_insert = False
 
-import django.db.backends.mysql.base
-django.db.backends.mysql.base.DatabaseWrapper.check_database_version_supported = lambda self: None
+#import django.db.backends.mysql.base
+#django.db.backends.mysql.base.DatabaseWrapper.check_database_version_supported = lambda self: None
 
 
 # Password validation

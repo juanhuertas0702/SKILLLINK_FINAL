@@ -158,6 +158,7 @@ export default function Register() {
           nombre: formData.fullName,
           email: formData.email,
           password: formData.password,
+          ciudad: formData.city
         };
 
         const response = await fetch('http://localhost:8000/api/usuarios/registro/', {

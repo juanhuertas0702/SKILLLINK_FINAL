@@ -1,212 +1,265 @@
 import React, { useState, useEffect } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext'; // Importamos Auth
 import Header from '../components/Header';
-import { chatAPI } from '../config/api';
 import '../styles/Mensajes.css';
 
 export default function Mensajes() {
-  const location = useLocation();
-  const [chats, setChats] = useState([]);
-  const [selectedChat, setSelectedChat] = useState(null);
-  const [messages, setMessages] = useState([]);
+  const { token, user } = useAuth(); // Necesitamos el token para peticiones
+  
+  // Estados principales
+  const [activeTab, setActiveTab] = useState('chats'); // 'chats' o 'solicitudes'
+  const [conversations, setConversations] = useState([]); // Chats activos (Aceptados)
+  const [requests, setRequests] = useState([]); // Solicitudes pendientes
+  const [selectedItem, setSelectedItem] = useState(null); // El chat o solicitud seleccionado
+  
+  // Estados de carga y mensajes
+  const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(false);
 
+  // Cargar datos al iniciar
   useEffect(() => {
-    // Cargar chats existentes del localStorage
-    const savedChats = localStorage.getItem('chats');
-    if (savedChats) {
-      try {
-        setChats(JSON.parse(savedChats));
-      } catch (error) {
-        console.error('Error cargando chats:', error);
-      }
-    }
-    setLoading(false);
+    fetchData();
+  }, [token]);
 
-    // Si viene de contactar a alguien, crear nuevo chat
-    if (location.state?.service) {
-      const newChat = {
-        id: Date.now(),
-        user: location.state.service.usuario?.nombre || 'Usuario',
-        serviceId: location.state.service.id,
-        serviceName: location.state.service.title,
-        lastMessage: '',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      
-      // Agregar chat si no existe
-      setChats(prevChats => {
-        const chatExists = prevChats.some(chat => chat.serviceId === newChat.serviceId);
-        if (!chatExists) {
-          const updatedChats = [...prevChats, newChat];
-          localStorage.setItem('chats', JSON.stringify(updatedChats));
-          return updatedChats;
-        }
-        return prevChats;
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      // Consultamos TODAS las solicitudes (tu backend ya filtra las tuyas)
+      const response = await fetch('http://localhost:8000/api/solicitudes/', {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       
-      // Seleccionar el chat automáticamente
-      setSelectedChat(newChat);
-      setMessages([]);
-    }
-  }, [location.state]);
+      if (!response.ok) throw new Error('Error cargando datos');
+      
+      const data = await response.json();
+      const lista = data.results || data;
 
-  const handleSelectChat = (chat) => {
-    setSelectedChat(chat);
-    // Cargar mensajes del chat
-    const demoMessages = [
-      { id: 1, sender: 'Juan Pérez', text: 'Hola, necesito ayuda con plomería', timestamp: '10:30' },
-      { id: 2, sender: 'Tú', text: 'Claro, ¿cuál es el problema?', timestamp: '10:32' },
-      { id: 3, sender: 'Juan Pérez', text: '¿Disponible mañana?', timestamp: '10:35' }
-    ];
-    setMessages(demoMessages);
-  };
+      // CLASIFICACIÓN INTELIGENTE:
+      // 1. Pendientes -> Pestaña Solicitudes
+      const pendientes = lista.filter(item => item.estado === 'pendiente');
+      
+      // 2. Aceptadas -> Pestaña Chats
+      const aceptadas = lista.filter(item => item.estado === 'aceptada');
 
-  const handleSendMessage = () => {
-    if (newMessage.trim() && selectedChat) {
-      const message = {
-        id: messages.length + 1,
-        sender: 'Tú',
-        text: newMessage,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      };
-      setMessages([...messages, message]);
-      
-      // Actualizar el chat con el último mensaje
-      setChats(prevChats => {
-        const updatedChats = prevChats.map(chat =>
-          chat.id === selectedChat.id
-            ? { ...chat, lastMessage: newMessage, timestamp: message.timestamp }
-            : chat
-        );
-        localStorage.setItem('chats', JSON.stringify(updatedChats));
-        return updatedChats;
-      });
-      
-      // Actualizar el chat seleccionado
-      setSelectedChat(prev => ({
-        ...prev,
-        lastMessage: newMessage,
-        timestamp: message.timestamp
-      }));
-      
-      setNewMessage('');
+      setRequests(pendientes);
+      setConversations(aceptadas);
+
+    } catch (error) {
+      console.error("Error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteChat = (chatId) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este chat?')) {
-      const updatedChats = chats.filter(chat => chat.id !== chatId);
-      setChats(updatedChats);
-      localStorage.setItem('chats', JSON.stringify(updatedChats));
+  // Función para Responder (Aceptar/Rechazar)
+  const handleResponse = async (id, decision) => {
+    try {
+      const response = await fetch(`http://localhost:8000/api/solicitudes/${id}/responder/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ estado: decision })
+      });
+
+      if (!response.ok) throw new Error('Error al procesar solicitud');
+
+      // Si todo sale bien:
+      alert(decision === 'aceptada' ? '✅ ¡Solicitud Aceptada! Ahora puedes chatear.' : 'Solicitud rechazada.');
       
-      if (selectedChat?.id === chatId) {
-        setSelectedChat(null);
-        setMessages([]);
-      }
+      // Recargar datos para mover la solicitud a chats (o eliminarla)
+      fetchData();
+      setSelectedItem(null); // Limpiar selección
+
+    } catch (error) {
+      alert('Error: ' + error.message);
     }
+  };
+
+  // Renderizar el contenido principal (Derecha)
+  const renderMainContent = () => {
+    if (!selectedItem) {
+      return (
+        <div className="no-chat-selected">
+          <div className="empty-state-icon">💬</div>
+          <p>Selecciona una conversación o solicitud</p>
+        </div>
+      );
+    }
+
+    // VISTA DE SOLICITUD PENDIENTE
+    if (activeTab === 'solicitudes') {
+      return (
+        <div className="request-detail-container">
+          <div className="request-header">
+            <h2>Nueva Solicitud de Servicio</h2>
+            <span className="status-badge pending">Pendiente</span>
+          </div>
+          
+          <div className="request-card-large">
+            <div className="request-info-row">
+              <img 
+                src={selectedItem.foto_cliente || "https://via.placeholder.com/50"} 
+                alt="Cliente" 
+                className="client-avatar-large"
+              />
+              <div>
+                <h3>{selectedItem.nombre_cliente}</h3>
+                <p className="text-muted">{selectedItem.email_cliente}</p>
+              </div>
+            </div>
+
+            <div className="service-highlight">
+              <strong>Servicio Solicitado:</strong> {selectedItem.titulo_servicio}
+            </div>
+
+            <div className="message-box">
+              <label>Mensaje del cliente:</label>
+              <p>"{selectedItem.mensaje}"</p>
+            </div>
+
+            <div className="action-buttons-large">
+              <button 
+                className="btn-reject"
+                onClick={() => handleResponse(selectedItem.id, 'rechazada')}
+              >
+                Rechazar
+              </button>
+              <button 
+                className="btn-accept"
+                onClick={() => handleResponse(selectedItem.id, 'aceptada')}
+              >
+                Aceptar y Chatear
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // VISTA DE CHAT (SOLICITUD ACEPTADA)
+    return (
+      <>
+        <div className="chat-header">
+          <div className="chat-user-info">
+            <div className="user-avatar">
+              {selectedItem.nombre_cliente?.charAt(0).toUpperCase()}
+            </div>
+            <div>
+              <h3>{selectedItem.nombre_cliente}</h3>
+              <p className="service-tag">{selectedItem.titulo_servicio}</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="messages-list">
+          {/* Aquí irían los mensajes reales del chat backend */}
+          <div className="system-message">
+            <p>Has aceptado la solicitud. ¡Empieza la conversación!</p>
+            <small>{new Date(selectedItem.fecha_solicitud).toLocaleDateString()}</small>
+          </div>
+          
+          <div className="message received">
+            <p>{selectedItem.mensaje}</p>
+            <span className="time">Mensaje inicial</span>
+          </div>
+        </div>
+
+        <div className="message-input-area">
+          <input
+            type="text"
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            placeholder="Escribe un mensaje..."
+            className="message-input"
+          />
+          <button className="send-button">
+            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">
+              <line x1="22" y1="2" x2="11" y2="13"></line>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+            </svg>
+          </button>
+        </div>
+      </>
+    );
   };
 
   return (
-    <div>
+    <div className="mensajes-page">
       <Header />
       <div className="mensajes-container">
         <div className="mensajes-layout">
-          {/* Lista de chats */}
-          <div className="chats-list">
-            <h2 className="chats-title">Mensajes</h2>
-            {loading ? (
-              <div className="loading">Cargando chats...</div>
-            ) : chats.length === 0 ? (
-              <div className="no-chats">
-                <p>No hay mensajes aún</p>
-                <p className="subtitle">Los clientes podrán contactarte aquí</p>
-              </div>
-            ) : (
-              chats.map(chat => (
-                <div
-                  key={chat.id}
-                  className={`chat-item ${selectedChat?.id === chat.id ? 'active' : ''}`}
-                >
-                  <div 
-                    className="chat-content"
-                    onClick={() => handleSelectChat(chat)}
-                  >
-                    <div className="chat-info">
-                      <h3 className="chat-name">{chat.user}</h3>
-                      <p className="chat-preview">{chat.lastMessage}</p>
-                    </div>
-                    <span className="chat-time">{chat.timestamp}</span>
-                  </div>
-                  <button 
-                    className="delete-chat-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteChat(chat.id);
-                    }}
-                    title="Eliminar chat"
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <polyline points="3 6 5 6 21 6"></polyline>
-                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                      <line x1="10" y1="11" x2="10" y2="17"></line>
-                      <line x1="14" y1="11" x2="14" y2="17"></line>
-                    </svg>
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
+          
+          {/* SIDEBAR IZQUIERDA */}
+          <div className="chats-sidebar">
+            <div className="sidebar-tabs">
+              <button 
+                className={`tab-btn ${activeTab === 'chats' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('chats'); setSelectedItem(null); }}
+              >
+                Chats ({conversations.length})
+              </button>
+              <button 
+                className={`tab-btn ${activeTab === 'solicitudes' ? 'active' : ''}`}
+                onClick={() => { setActiveTab('solicitudes'); setSelectedItem(null); }}
+              >
+                Solicitudes 
+                {requests.length > 0 && <span className="badge-count">{requests.length}</span>}
+              </button>
+            </div>
 
-          {/* Área de mensajes */}
-          <div className="messages-area">
-            {selectedChat ? (
-              <>
-                <div className="messages-header">
-                  <h2>{selectedChat.user}</h2>
-                </div>
-
-                <div className="messages-list">
-                  {messages.map(msg => (
-                    <div
-                      key={msg.id}
-                      className={`message ${msg.sender === 'Tú' ? 'sent' : 'received'}`}
+            <div className="chats-list">
+              {loading && <p className="loading-text">Cargando...</p>}
+              
+              {activeTab === 'chats' ? (
+                conversations.length === 0 ? (
+                  <p className="empty-list">No tienes chats activos.</p>
+                ) : (
+                  conversations.map(chat => (
+                    <div 
+                      key={chat.id} 
+                      className={`chat-item ${selectedItem?.id === chat.id ? 'selected' : ''}`}
+                      onClick={() => setSelectedItem(chat)}
                     >
-                      <div className="message-content">
-                        <p className="message-text">{msg.text}</p>
-                        <span className="message-time">{msg.timestamp}</span>
+                      <div className="chat-item-avatar">
+                        {chat.nombre_cliente?.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="chat-item-info">
+                        <h4>{chat.nombre_cliente}</h4>
+                        <p>{chat.titulo_servicio}</p>
                       </div>
                     </div>
-                  ))}
-                </div>
-
-                <div className="message-input-area">
-                  <input
-                    type="text"
-                    value={newMessage}
-                    onChange={(e) => setNewMessage(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Escribe tu mensaje..."
-                    className="message-input"
-                  />
-                  <button onClick={handleSendMessage} className="send-button">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <line x1="22" y1="2" x2="11" y2="13"></line>
-                      <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                    </svg>
-                  </button>
-                </div>
-              </>
-            ) : (
-              <div className="no-chat-selected">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
-                </svg>
-                <p>Selecciona un chat para comenzar</p>
-              </div>
-            )}
+                  ))
+                )
+              ) : (
+                /* LISTA DE SOLICITUDES */
+                requests.length === 0 ? (
+                  <p className="empty-list">No hay solicitudes pendientes.</p>
+                ) : (
+                  requests.map(req => (
+                    <div 
+                      key={req.id} 
+                      className={`chat-item request-item ${selectedItem?.id === req.id ? 'selected' : ''}`}
+                      onClick={() => setSelectedItem(req)}
+                    >
+                      <div className="status-dot"></div>
+                      <div className="chat-item-info">
+                        <h4>{req.nombre_cliente}</h4>
+                        <p className="request-preview">Solicita: {req.titulo_servicio}</p>
+                      </div>
+                    </div>
+                  ))
+                )
+              )}
+            </div>
           </div>
+
+          {/* ÁREA PRINCIPAL DERECHA */}
+          <div className="chat-main-area">
+            {renderMainContent()}
+          </div>
+
         </div>
       </div>
     </div>

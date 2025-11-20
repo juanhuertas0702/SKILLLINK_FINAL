@@ -1,8 +1,33 @@
 import React from 'react';
 import '../styles/FilterModal.css';
 
-export default function FilterModal({ isOpen, onClose, filters, onFilterChange, onApplyFilters, onClearFilters }) {
+export default function FilterModal({ isOpen, onClose, filters, onFilterChange, onApplyFilters }) {
   if (!isOpen) return null;
+
+  // ✅ CORRECCIÓN: Actualizamos el objeto completo para que Home.js lo entienda
+  const handleCheckboxChange = (e) => {
+    const { name, checked } = e.target;
+    onFilterChange({
+      ...filters,
+      [name]: checked
+    });
+  };
+
+  const handleRatingChange = (e) => {
+    onFilterChange({
+      ...filters,
+      minRating: parseFloat(e.target.value)
+    });
+  };
+
+  const handleClearFilters = () => {
+    // Restablecer a valores por defecto
+    onFilterChange({
+      showAvailable: true,
+      showOccupied: true,
+      minRating: 0
+    });
+  };
 
   return (
     <div className="filter-modal-overlay" onClick={onClose}>
@@ -17,42 +42,47 @@ export default function FilterModal({ isOpen, onClose, filters, onFilterChange, 
           </button>
         </div>
 
+        {/* Sección Disponibilidad */}
         <div className="filter-section">
           <h4 className="filter-section-title">Disponibilidad</h4>
           <div className="filter-options">
             <label className="filter-checkbox">
               <input
                 type="checkbox"
+                name="showAvailable" 
                 checked={filters.showAvailable}
-                onChange={(e) => onFilterChange('showAvailable', e.target.checked)}
+                onChange={handleCheckboxChange}
               />
               <span className="filter-label">
-                <span className="status-badge status-available-badge">Disponible</span>
+                Mostrar Disponibles
               </span>
             </label>
+            
             <label className="filter-checkbox">
               <input
                 type="checkbox"
+                name="showOccupied"
                 checked={filters.showOccupied}
-                onChange={(e) => onFilterChange('showOccupied', e.target.checked)}
+                onChange={handleCheckboxChange}
               />
               <span className="filter-label">
-                <span className="status-badge status-occupied-badge">Ocupado</span>
+                Mostrar Ocupados
               </span>
             </label>
           </div>
         </div>
 
+        {/* Sección Calificación */}
         <div className="filter-section">
-          <h4 className="filter-section-title">Calificación mínima</h4>
-          <div className="rating-slider-container">
+          <h4 className="filter-section-title">Calificación Mínima</h4>
+          <div className="range-container">
             <input
               type="range"
               min="0"
               max="5"
               step="0.5"
               value={filters.minRating}
-              onChange={(e) => onFilterChange('minRating', parseFloat(e.target.value))}
+              onChange={handleRatingChange}
               className="rating-slider"
             />
             <div className="rating-display">
@@ -75,8 +105,9 @@ export default function FilterModal({ isOpen, onClose, filters, onFilterChange, 
           </div>
         </div>
 
+        {/* Botones de Acción */}
         <div className="filter-modal-actions">
-          <button onClick={onClearFilters} className="filter-button-clear">
+          <button onClick={handleClearFilters} className="filter-button-clear">
             Limpiar filtros
           </button>
           <button onClick={onApplyFilters} className="filter-button-apply">

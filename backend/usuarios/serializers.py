@@ -3,6 +3,7 @@ from .models import Usuario
 
 class UsuarioSerializer(serializers.ModelSerializer):
     """Serializer para ver/editar datos básicos del usuario (perfil)."""
+    es_trabajador = serializers.SerializerMethodField()
 
     class Meta:
         model = Usuario
@@ -17,6 +18,7 @@ class UsuarioSerializer(serializers.ModelSerializer):
             "rol_base",
             "metodo_registro",
             "fecha_registro",
+            'es_trabajador'
         ]
         read_only_fields = ["rol_base", "metodo_registro", "estado", "fecha_registro", "email"]
 
@@ -28,7 +30,7 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Usuario
-        fields = ["id_usuario", "nombre", "email", "password"]
+        fields = ["id_usuario", "nombre", "email", "password", "ciudad"]
 
     def create(self, validated_data):
         # Siempre se crea como usuario normal, metodo_registro = local
@@ -36,9 +38,13 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
         user = Usuario(
             email=validated_data["email"],
             nombre=validated_data["nombre"],
+            ciudad=validated_data.get("ciudad"),
             rol_base=Usuario.ROL_USUARIO,
             metodo_registro="local",
         )
         user.set_password(password)
         user.save()
         return user
+    def get_es_trabajador(self, obj):
+        # Devuelve True si el usuario tiene perfil de trabajador
+        return hasattr(obj, 'perfil_trabajador')

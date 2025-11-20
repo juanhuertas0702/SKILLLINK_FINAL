@@ -1,9 +1,10 @@
 from django.db import models
+from django.conf import settings
 from usuarios.models import Usuario
 
 class PerfilTrabajador(models.Model):
     id_trabajador = models.AutoField(primary_key=True)
-    usuario = models.OneToOneField(Usuario, on_delete=models.CASCADE)
+    usuario = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE,related_name='perfil_trabajador')
 
     descripcion = models.TextField(blank=True, null=True)
     experiencia = models.TextField(blank=True, null=True)

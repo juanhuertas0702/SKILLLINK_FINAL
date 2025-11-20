@@ -22,7 +22,11 @@ class ServiciosPublicosListView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
 
     def get_queryset(self):
-        qs = Servicio.objects.filter(estado_publicacion="aprobado").select_related("trabajador__usuario")
+        # ANTES: Solo aprobados
+        # qs = Servicio.objects.filter(estado_publicacion="aprobado").select_related("trabajador__usuario")
+        
+        # AHORA: (TEMPORAL) Mostrar TODOS para probar
+        qs = Servicio.objects.all().select_related("trabajador__usuario")
 
         categoria = self.request.query_params.get("categoria")
         ciudad = self.request.query_params.get("ciudad")
@@ -69,20 +73,31 @@ class ServicioViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         # -----------------------------------------------------
-        # 1) Verificar que el usuario tenga perfil trabajador
+        # 1) Buscar o Crear automáticamente el Perfil de Trabajador
         # -----------------------------------------------------
-        perfil = PerfilTrabajador.objects.filter(usuario=self.request.user).first()
-        if not perfil:
-            raise ValidationError("Debes tener un perfil de trabajador para publicar servicios.")
+        user = self.request.user
+        
+        # Intentamos obtener el perfil, si no existe, se crea uno nuevo
+        perfil, created = PerfilTrabajador.objects.get_or_create(
+            usuario=user,
+            defaults={
+                # Usamos la categoría del servicio como categoría inicial del perfil
+                'categoria_principal': serializer.validated_data.get('categoria', 'General'),
+                'descripcion': 'Perfil creado automáticamente al publicar el primer servicio.',
+                'estado': 'activo'
+            }
+        )
 
         # -----------------------------------------------------
         # 2) Verificar plan de membresía
         # -----------------------------------------------------
+        # Si el perfil es nuevo, no tiene membresía, asumimos 'free'
         membresia = getattr(perfil, "membresia", None)
         plan = membresia.plan if membresia else "free"
 
         if plan == "free":
             limite = 3
+            # Contamos cuántos servicios tiene este perfil
             servicios_publicados = Servicio.objects.filter(trabajador=perfil).count()
 
             if servicios_publicados >= limite:
@@ -91,7 +106,7 @@ class ServicioViewSet(viewsets.ModelViewSet):
                 )
 
         # -----------------------------------------------------
-        # 3) Crear el servicio inicialmente
+        # 3) Guardar el servicio asociado al perfil (nuevo o existente)
         # -----------------------------------------------------
         servicio = serializer.save(trabajador=perfil)
 
@@ -115,7 +130,7 @@ class ServicioViewSet(viewsets.ModelViewSet):
             servicio.palabras_detectadas = False
             servicio.estado_publicacion = "aprobado"
             servicio.save()
-
+        
         return servicio
 
 

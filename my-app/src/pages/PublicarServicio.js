@@ -2,10 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import { serviciosAPI } from '../config/api';
+import { useAuth } from '../context/AuthContext';
 import '../styles/PublicarServicio.css';
+
 
 export default function PublicarServicio() {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const [formData, setFormData] = useState({
     titulo: '',
     descripcion: '',
@@ -53,47 +56,41 @@ export default function PublicarServicio() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (validateForm()) {
       setLoading(true);
       try {
-        console.log('🔄 Publicando servicio:', formData);
+        console.log("Enviando token:", token); // Para depuración
 
-        // Preparar datos para enviar al backend (deben coincidir con el modelo Django)
-        const servicioData = {
-          titulo: formData.titulo,
-          descripcion: formData.descripcion,
-          categoria: formData.categoria,
-          precio: parseFloat(formData.precio)
-        };
-
-        const data = await serviciosAPI.crear(servicioData);
-        console.log('✅ Servicio publicado:', data);
-
-        alert('¡Servicio publicado exitosamente!');
-        navigate('/');
-      } catch (error) {
-        console.error('❌ Error al publicar servicio:', error);
-        
-        // Mostrar el error del servidor si está disponible
-        let errorMessage = 'Error al publicar el servicio';
-        let showAlert = false;
-        
-        if (error.message) {
-          errorMessage = error.message;
-        }
-        
-        // Si es error de límite de servicios, mostrar alert
-        if (errorMessage.includes('límite') || errorMessage.includes('SkillLink Pro')) {
-          showAlert = true;
-          alert(errorMessage);
-        }
-        
-        setErrors({
-          submit: errorMessage
+        const response = await fetch('http://localhost:8000/api/servicios/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(formData),
         });
+
+        // ✅ MEJORA: Si falla, intentamos leer el mensaje real del servidor
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => null);
+          const mensajeError = errorData 
+            ? (errorData.detail || JSON.stringify(errorData)) 
+            : `Error del servidor: ${response.status}`;
+          
+          throw new Error(mensajeError);
+        }
+
+        const data = await response.json();
+        alert('¡Servicio publicado con éxito!');
+        navigate('/'); 
+        
+      } catch (error) {
+        console.error('Error detallado:', error);
+        // ✅ AHORA VERÁS EL ERROR REAL EN LA PANTALLA
+        setErrors({ submit: error.message }); 
       } finally {
         setLoading(false);
       }
