@@ -81,6 +81,11 @@ export const authAPI = {
     apiRequest('/usuarios/me/', {
       method: 'GET',
     }),
+
+  esTrabajador: () =>
+    apiRequest('/usuarios/es-trabajador/', {
+      method: 'GET',
+    }),
 };
 
 // API de Servicios
@@ -202,24 +207,37 @@ export const solicitudesAPI = {
       method: 'PATCH',
       body: JSON.stringify({}),
     }),
+
+  // Eliminar solicitud/chat
+  eliminar: (id) =>
+    apiRequest(`/solicitudes/${id}/`, {
+      method: 'DELETE',
+    }),
 };
 
 // API de Chat
 export const chatAPI = {
-  listar: () =>
-    apiRequest('/chat/', {
+  // Obtener mensajes de una solicitud específica
+  obtenerMensajes: (solicitudId) =>
+    apiRequest(`/chat/${solicitudId}/`, {
       method: 'GET',
     }),
 
-  enviar: (data) =>
-    apiRequest('/chat/', {
+  // Enviar nuevo mensaje
+  enviarMensaje: (solicitudId, texto, archivo = null) =>
+    apiRequest('/chat/enviar/', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        solicitud: solicitudId,
+        texto: texto,
+        archivo: archivo
+      }),
     }),
 
-  obtenerConversacion: (usuarioId) =>
-    apiRequest(`/chat/?usuario=${usuarioId}`, {
-      method: 'GET',
+  // Marcar mensajes como leídos
+  marcarComoLeidos: (solicitudId) =>
+    apiRequest(`/chat/${solicitudId}/leer/`, {
+      method: 'PUT',
     }),
 };
 

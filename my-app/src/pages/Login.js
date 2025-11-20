@@ -58,23 +58,7 @@ export default function Login() {
       try {
         console.log('🔄 Intentando login con:', formData.email);
 
-        const response = await fetch('http://localhost:8000/api/auth/token/', { // ✅ URL Correcta
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            email: formData.email,
-            password: formData.password,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error || 'Error al iniciar sesión');
-        }
-
-        const data = await response.json();
+        const data = await authAPI.login(formData.email, formData.password);
         console.log('✅ Login exitoso:', data);
         
         // Guardar token y usuario en localStorage

@@ -8,6 +8,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import permissions, status
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from django.conf import settings
 
 from .models import Usuario
@@ -95,6 +97,76 @@ class RegistroUsuarioView(generics.CreateAPIView):
     serializer_class = RegistroUsuarioSerializer
     permission_classes = [permissions.AllowAny]
 
+    def perform_create(self, serializer):
+        user = serializer.save()
+        return user
+
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        
+        # Generar tokens JWT después del registro
+        user = Usuario.objects.get(email=request.data.get('email'))
+        refresh = RefreshToken.for_user(user)
+        
+        response.data = {
+            'user': {
+                'id_usuario': user.id_usuario,
+                'nombre': user.nombre,
+                'email': user.email,
+                'rol_base': user.rol_base,
+            },
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+        }
+        return response
+
+
+class LoginView(APIView):
+    """
+    Endpoint para login con email y password.
+    POST /api/usuarios/login/
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email')
+        password = request.data.get('password')
+
+        if not email or not password:
+            return Response(
+                {'error': 'Email y password son requeridos'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            user = Usuario.objects.get(email=email)
+        except Usuario.DoesNotExist:
+            return Response(
+                {'error': 'Credenciales inválidas'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        # Verificar contraseña
+        if not user.check_password(password):
+            return Response(
+                {'error': 'Credenciales inválidas'},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+
+        # Generar tokens
+        refresh = RefreshToken.for_user(user)
+        
+        return Response({
+            'user': {
+                'id_usuario': user.id_usuario,
+                'nombre': user.nombre,
+                'email': user.email,
+                'rol_base': user.rol_base,
+            },
+            'access': str(refresh.access_token),
+            'refresh': str(refresh),
+        }, status=status.HTTP_200_OK)
+
 
 class UsuarioMeView(generics.RetrieveUpdateAPIView):
     """
@@ -109,6 +181,30 @@ class UsuarioMeView(generics.RetrieveUpdateAPIView):
     def get_object(self):
         # Siempre retorna el usuario autenticado (request.user)
         return self.request.user
+
+
+class EsTrabajadorView(APIView):
+    """
+    Endpoint para verificar si el usuario logueado tiene perfil de trabajador.
+    GET /api/usuarios/es-trabajador/
+    """
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        from perfiles.models import PerfilTrabajador
+        
+        try:
+            perfil = PerfilTrabajador.objects.get(usuario=request.user)
+            return Response({
+                'es_trabajador': True,
+                'id_trabajador': perfil.id_trabajador,
+                'categoria': perfil.categoria_principal,
+                'estado': perfil.estado
+            }, status=status.HTTP_200_OK)
+        except PerfilTrabajador.DoesNotExist:
+            return Response({
+                'es_trabajador': False
+            }, status=status.HTTP_200_OK)
 
 
 class UsuarioViewSet(viewsets.ModelViewSet):

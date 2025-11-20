@@ -64,3 +64,22 @@ class SolicitudViewSet(viewsets.ModelViewSet):
         solicitud.estado = nuevo_estado
         solicitud.save()
         return Response(SolicitudSerializer(solicitud).data)
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Permitir que solo el cliente o el trabajador puedan eliminar una solicitud.
+        """
+        solicitud = self.get_object()
+        
+        # Validar que sea el cliente o el trabajador
+        es_cliente = solicitud.cliente == request.user
+        es_trabajador = (hasattr(request.user, 'perfil_trabajador') and 
+                        solicitud.trabajador == request.user.perfil_trabajador)
+        
+        if not (es_cliente or es_trabajador):
+            return Response(
+                {'error': 'No tienes permiso para eliminar esta solicitud.'}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
+        
+        return super().destroy(request, *args, **kwargs)

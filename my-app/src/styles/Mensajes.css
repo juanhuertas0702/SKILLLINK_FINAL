@@ -256,6 +256,24 @@
   background: white;
 }
 
+.btn-delete-chat {
+  background: none;
+  border: none;
+  color: #ef4444;
+  cursor: pointer;
+  padding: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.btn-delete-chat:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 .chat-user-info {
   display: flex;
   align-items: center;

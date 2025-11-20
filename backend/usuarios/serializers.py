@@ -22,6 +22,10 @@ class UsuarioSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["rol_base", "metodo_registro", "estado", "fecha_registro", "email"]
 
+    def get_es_trabajador(self, obj):
+        # Devuelve True si el usuario tiene perfil de trabajador
+        return hasattr(obj, 'perfil_trabajador') and obj.perfil_trabajador is not None
+
 
 class RegistroUsuarioSerializer(serializers.ModelSerializer):
     """Serializer para registrar usuarios nuevos (registro local, no Google)."""
@@ -45,6 +49,4 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
         user.set_password(password)
         user.save()
         return user
-    def get_es_trabajador(self, obj):
-        # Devuelve True si el usuario tiene perfil de trabajador
-        return hasattr(obj, 'perfil_trabajador')
+

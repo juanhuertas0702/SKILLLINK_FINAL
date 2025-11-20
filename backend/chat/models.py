@@ -30,7 +30,7 @@ class Mensaje(models.Model):
     leido = models.BooleanField(default=False)
 
     def __str__(self):
-        return f"Msg {self.id_mensaje} | Solicitud {self.solicitud.id_solicitud} | {self.remitente.email}"
+        return f"Msg {self.id_mensaje} | Solicitud {self.solicitud.id} | {self.remitente.email}"
 
     class Meta:
         verbose_name = "Mensaje"

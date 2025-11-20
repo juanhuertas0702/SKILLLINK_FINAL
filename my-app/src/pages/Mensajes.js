@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext'; // Importamos Auth
 import Header from '../components/Header';
+import { authAPI, chatAPI } from '../config/api';
 import '../styles/Mensajes.css';
 
 export default function Mensajes() {
+  const navigate = useNavigate();
   const { token, user } = useAuth(); // Necesitamos el token para peticiones
   
   // Estados principales
@@ -11,20 +14,39 @@ export default function Mensajes() {
   const [conversations, setConversations] = useState([]); // Chats activos (Aceptados)
   const [requests, setRequests] = useState([]); // Solicitudes pendientes
   const [selectedItem, setSelectedItem] = useState(null); // El chat o solicitud seleccionado
+  const [messages, setMessages] = useState([]); // Mensajes del chat seleccionado
   
   // Estados de carga y mensajes
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState('');
+  const [isSending, setIsSending] = useState(false);
+  const [esTrabajador, setEsTrabajador] = useState(false);
 
   // Cargar datos al iniciar
   useEffect(() => {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    verificarTrabajador();
     fetchData();
-  }, [token]);
+  }, [token, navigate]);
+
+  // Verificar si el usuario es trabajador
+  const verificarTrabajador = async () => {
+    try {
+      const result = await authAPI.esTrabajador();
+      setEsTrabajador(result.es_trabajador);
+    } catch (error) {
+      console.error('Error verificando perfil:', error);
+      setEsTrabajador(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      // Consultamos TODAS las solicitudes (tu backend ya filtra las tuyas)
+      // Consultamos TODAS las solicitudes
       const response = await fetch('http://localhost:8000/api/solicitudes/', {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -48,6 +70,27 @@ export default function Mensajes() {
       console.error("Error:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Cargar mensajes cuando se selecciona un chat
+  useEffect(() => {
+    if (selectedItem && activeTab === 'chats') {
+      cargarMensajes(selectedItem.id);
+    }
+  }, [selectedItem, activeTab]);
+
+  const cargarMensajes = async (solicitudId) => {
+    try {
+      const data = await chatAPI.obtenerMensajes(solicitudId);
+      const messagesList = Array.isArray(data) ? data : data.results || [];
+      setMessages(messagesList);
+      
+      // Marcar como leídos
+      await chatAPI.marcarComoLeidos(solicitudId);
+    } catch (error) {
+      console.error('Error cargando mensajes:', error);
+      setMessages([]);
     }
   };
 
@@ -77,7 +120,73 @@ export default function Mensajes() {
     }
   };
 
+  // Función para enviar mensaje
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    
+    if (!newMessage.trim() || !selectedItem) {
+      return;
+    }
+
+    try {
+      setIsSending(true);
+      const response = await fetch('http://localhost:8000/api/chat/enviar/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          solicitud: selectedItem.id,
+          texto: newMessage
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Error al enviar mensaje');
+      }
+
+      // Limpiar input y recargar mensajes
+      setNewMessage('');
+      await cargarMensajes(selectedItem.id);
+
+    } catch (error) {
+      alert('Error: ' + error.message);
+    } finally {
+      setIsSending(false);
+    }
+  };
+
   // Renderizar el contenido principal (Derecha)
+  // Función para eliminar chat/solicitud
+  const handleDeleteChat = async (id) => {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este chat? No se puede deshacer.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`http://localhost:8000/api/solicitudes/${id}/`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || 'Error al eliminar chat');
+      }
+
+      alert('Chat eliminado exitosamente');
+      fetchData();
+      setSelectedItem(null);
+
+    } catch (error) {
+      alert('Error: ' + error.message);
+    }
+  };
+
   const renderMainContent = () => {
     if (!selectedItem) {
       return (
@@ -151,15 +260,44 @@ export default function Mensajes() {
               <p className="service-tag">{selectedItem.titulo_servicio}</p>
             </div>
           </div>
+          <button
+            className="btn-delete-chat"
+            onClick={() => handleDeleteChat(selectedItem.id)}
+            title="Eliminar chat"
+          >
+            <svg viewBox="0 0 24 24" width="20" height="20" stroke="currentColor" strokeWidth="2" fill="none">
+              <polyline points="3 6 5 6 21 6"></polyline>
+              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+              <line x1="10" y1="11" x2="10" y2="17"></line>
+              <line x1="14" y1="11" x2="14" y2="17"></line>
+            </svg>
+          </button>
         </div>
 
         <div className="messages-list">
-          {/* Aquí irían los mensajes reales del chat backend */}
-          <div className="system-message">
-            <p>Has aceptado la solicitud. ¡Empieza la conversación!</p>
-            <small>{new Date(selectedItem.fecha_solicitud).toLocaleDateString()}</small>
-          </div>
+          {messages.length === 0 ? (
+            <div className="system-message">
+              <p>Has aceptado la solicitud. ¡Empieza la conversación!</p>
+              <small>{new Date(selectedItem.fecha_solicitud).toLocaleDateString()}</small>
+            </div>
+          ) : (
+            messages.map((msg) => (
+              <div 
+                key={msg.id_mensaje} 
+                className={`message ${msg.remitente === user.id_usuario ? 'sent' : 'received'}`}
+              >
+                <p>{msg.texto}</p>
+                <span className="time">
+                  {new Date(msg.fecha_envio).toLocaleTimeString('es-ES', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </span>
+              </div>
+            ))
+          )}
           
+          {/* Mensaje inicial */}
           <div className="message received">
             <p>{selectedItem.mensaje}</p>
             <span className="time">Mensaje inicial</span>
@@ -167,19 +305,26 @@ export default function Mensajes() {
         </div>
 
         <div className="message-input-area">
-          <input
-            type="text"
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Escribe un mensaje..."
-            className="message-input"
-          />
-          <button className="send-button">
-            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">
-              <line x1="22" y1="2" x2="11" y2="13"></line>
-              <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-            </svg>
-          </button>
+          <form onSubmit={handleSendMessage} className="message-form">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Escribe un mensaje..."
+              className="message-input"
+              disabled={isSending}
+            />
+            <button 
+              type="submit" 
+              className="send-button"
+              disabled={isSending || !newMessage.trim()}
+            >
+              <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" strokeWidth="2" fill="none">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+            </button>
+          </form>
         </div>
       </>
     );
@@ -200,13 +345,15 @@ export default function Mensajes() {
               >
                 Chats ({conversations.length})
               </button>
-              <button 
-                className={`tab-btn ${activeTab === 'solicitudes' ? 'active' : ''}`}
-                onClick={() => { setActiveTab('solicitudes'); setSelectedItem(null); }}
-              >
-                Solicitudes 
-                {requests.length > 0 && <span className="badge-count">{requests.length}</span>}
-              </button>
+              {esTrabajador && (
+                <button 
+                  className={`tab-btn ${activeTab === 'solicitudes' ? 'active' : ''}`}
+                  onClick={() => { setActiveTab('solicitudes'); setSelectedItem(null); }}
+                >
+                  Solicitudes 
+                  {requests.length > 0 && <span className="badge-count">{requests.length}</span>}
+                </button>
+              )}
             </div>
 
             <div className="chats-list">
