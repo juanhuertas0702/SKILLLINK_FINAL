@@ -51,6 +51,11 @@ const apiRequest = async (endpoint, options = {}) => {
       throw new Error(errorMessage);
     }
 
+    // Para respuestas 204 No Content (DELETE), no hay body que parsear
+    if (response.status === 204) {
+      return { success: true };
+    }
+
     return await response.json();
   } catch (error) {
     console.error('API Error:', error);

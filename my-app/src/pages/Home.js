@@ -43,6 +43,30 @@ export default function Home() {
         const listaServicios = data.results ? data.results : data;
         const imagenes = [plomeroImg, carpinteroImg, meseroImg];
         
+        // Obtener disponibilidades de todos los trabajadores
+        let disponibilidadesMap = {};
+        try {
+          const dispResponse = await fetch('http://localhost:8000/api/disponibilidad/publico/');
+          if (dispResponse.ok) {
+            const dispData = await dispResponse.json();
+            const dispList = dispData.results ? dispData.results : dispData;
+            // Agrupar disponibilidades por trabajador
+            dispList.forEach(disp => {
+              if (!disponibilidadesMap[disp.trabajador]) {
+                disponibilidadesMap[disp.trabajador] = [];
+              }
+              disponibilidadesMap[disp.trabajador].push({
+                dia: disp.dia,
+                hora_inicio: disp.hora_inicio,
+                hora_fin: disp.hora_fin
+              });
+            });
+            console.log('✅ Disponibilidades cargadas:', disponibilidadesMap);
+          }
+        } catch (err) {
+          console.warn('Disponibilidades no disponibles o error cargando:', err);
+        }
+        
         const formattedServices = listaServicios
           // ✅ FILTRAR SOLO SERVICIOS APROBADOS
           .filter(item => item.estado_publicacion === 'aprobado')
@@ -56,8 +80,11 @@ export default function Home() {
             available: true,
             category: item.categoria,
             workerName: item.trabajador_nombre,
+            workerExperience: item.trabajador_experiencia,
             ownerId: item.owner_id,
-            estado: item.estado_publicacion
+            estado: item.estado_publicacion,
+            trabajadorId: item.trabajador_id,
+            availability: disponibilidadesMap[item.trabajador_id] || []
           }));
 
         setServices(formattedServices);

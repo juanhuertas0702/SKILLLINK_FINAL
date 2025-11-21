@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import '../styles/Register.css';
 import logo from '../assets/images/logo.png';
@@ -191,6 +192,57 @@ export default function Register() {
       } catch (error) {
         setErrors({
           submit: error.message || 'Error al registrarse. Intenta de nuevo.'
+        });
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
+  // Registrase con Google
+  const handleGoogleRegister = async (credentialResponse) => {
+    if (credentialResponse?.credential) {
+      try {
+        setLoading(true);
+        console.log('🔄 Intentando registro con Google...');
+        
+        // Enviar el token de Google al backend
+        const result = await fetch('http://localhost:8000/api/usuarios/google-login/', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id_token: credentialResponse.credential
+          }),
+        });
+
+        if (!result.ok) {
+          const errorData = await result.json();
+          throw new Error(errorData.error || 'Error en registro con Google');
+        }
+
+        const data = await result.json();
+        console.log('✅ Registro con Google exitoso:', data);
+        
+        // Guardar token en localStorage
+        localStorage.setItem('token', data.access);
+        localStorage.setItem('user', JSON.stringify(data.user || data));
+        
+        // Actualizar el contexto de autenticación
+        setToken(data.access);
+        setUser(data.user || data);
+        
+        // Limpiar errores
+        setErrors({});
+        
+        // Mostrar mensaje y redirigir
+        alert('¡Registro exitoso con Google!');
+        navigate('/');
+      } catch (error) {
+        console.error('❌ Error en registro con Google:', error);
+        setErrors({
+          submit: error.message || 'Error al registrarse con Google'
         });
       } finally {
         setLoading(false);
@@ -423,6 +475,23 @@ export default function Register() {
           <button type="submit" className="register-button" disabled={loading}>
             {loading ? 'Registrando...' : 'ACEPTAR'}
           </button>
+
+          <div className="divider">O</div>
+
+          <div className="google-signin-container">
+            <GoogleLogin
+              onSuccess={handleGoogleRegister}
+              onError={() => {
+                console.error('❌ Error en Google registro - Verifica que el Google Client ID esté configurado correctamente en Google Cloud Console');
+                setErrors({
+                  submit: 'Error con Google OAuth. Por favor, intenta con email y contraseña.'
+                });
+              }}
+              theme="outline"
+              size="large"
+              width="100%"
+            />
+          </div>
         </form>
 
         {/* Footer */}

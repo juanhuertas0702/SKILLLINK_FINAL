@@ -35,6 +35,7 @@ class ServicioPublicoSerializer(serializers.ModelSerializer):
     trabajador_calificacion = serializers.SerializerMethodField()
     trabajador_experiencia = serializers.CharField(source="trabajador.experiencia", read_only=True)
     trabajador_categoria = serializers.CharField(source="trabajador.categoria_principal", read_only=True)
+    trabajador_id = serializers.IntegerField(source="trabajador.id_trabajador", read_only=True)
 
     owner_id = serializers.ReadOnlyField(source='trabajador.usuario.id_usuario')
 
@@ -51,6 +52,7 @@ class ServicioPublicoSerializer(serializers.ModelSerializer):
             "trabajador_calificacion",
             "trabajador_experiencia",
             "trabajador_categoria",
+            "trabajador_id",
             "fecha_publicacion",
             "owner_id",
             "estado_publicacion"

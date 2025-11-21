@@ -6,6 +6,9 @@
   overflow: hidden;
   border: 1px solid #f3f4f6;
   transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .service-card:hover {
@@ -20,6 +23,7 @@
   align-items: center;
   justify-content: center;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .service-image-img {
@@ -30,13 +34,19 @@
 
 .service-info {
   padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+  overflow-y: auto;
+  max-height: calc(100% - 192px);
 }
 
 .service-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 0.75rem;
+  gap: 0.5rem;
 }
 
 .service-title {
@@ -44,6 +54,7 @@
   font-weight: bold;
   color: #1f2937;
   margin-bottom: 0.25rem;
+  line-height: 1.2;
 }
 
 .service-category {
@@ -65,6 +76,8 @@
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status-available {
@@ -77,11 +90,76 @@
   color: #991b1b;
 }
 
+/* Información del trabajador */
+.worker-info {
+  background: #f8fafc;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border-left: 3px solid #3b82f6;
+}
+
+.worker-detail {
+  font-size: 0.875rem;
+  color: #4b5563;
+  margin: 0.25rem 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #2d3748;
+  min-width: 80px;
+}
+
+.detail-value {
+  color: #475569;
+  text-align: right;
+  flex: 1;
+}
+
+/* Detalles de Servicio */
+.service-details {
+  display: flex;
+  gap: 0.75rem;
+  background: #f3f4f6;
+  padding: 0.75rem;
+  border-radius: 6px;
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.detail-item .detail-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.detail-item .detail-value {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1f2937;
+  text-align: left;
+}
+
+.detail-value.price {
+  color: #059669;
+  font-size: 1rem;
+}
+
 .service-rating {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 1rem;
   padding: 0.75rem;
   background: #fffbeb;
   border-radius: 8px;
@@ -122,6 +200,62 @@
   margin-left: auto;
 }
 
+/* Disponibilidad */
+.availability-section {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  padding: 0.75rem;
+  border-radius: 6px;
+}
+
+.availability-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #15803d;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.availability-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.availability-slot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  padding: 0.45rem 0.6rem;
+  background: white;
+  border-radius: 4px;
+  border-left: 3px solid #10b981;
+}
+
+.availability-day {
+  font-weight: 600;
+  color: #065f46;
+  text-transform: capitalize;
+  min-width: 75px;
+  font-size: 0.8rem;
+}
+
+.availability-time {
+  color: #059669;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.no-availability {
+  font-size: 0.8rem;
+  color: #b7123c;
+  font-style: italic;
+  margin: 0;
+}
+
 .contact-button {
   width: 100%;
   background: linear-gradient(135deg, #3b82f6 0%, #6366f1 100%);
@@ -133,6 +267,7 @@
   cursor: pointer;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
+  margin-top: auto;
 }
 
 .contact-button:hover:not(:disabled) {

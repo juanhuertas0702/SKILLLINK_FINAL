@@ -22,3 +22,13 @@ class DisponibilidadViewSet(viewsets.ModelViewSet):
     serializer_class = DisponibilidadSerializer
     filterset_class = DisponibilidadFilter
     ordering_fields = ['fecha', 'dia_semana', 'hora_inicio']
+
+class DisponibilidadPublicoListView(generics.ListAPIView):
+    """
+    Endpoint público para obtener todas las disponibilidades.
+    Sin autenticación requerida.
+    """
+    queryset = Disponibilidad.objects.all()
+    serializer_class = DisponibilidadSerializer
+    permission_classes = [permissions.AllowAny]
+    filterset_class = DisponibilidadFilter

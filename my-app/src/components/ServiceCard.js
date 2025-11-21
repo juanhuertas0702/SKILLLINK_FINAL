@@ -31,6 +31,38 @@ export default function ServiceCard({ service, onContactClick }) {
     return stars;
   };
 
+  const formatDate = (dateString) => {
+    const options = { day: 'numeric', month: 'short', year: 'numeric' };
+    return new Date(dateString).toLocaleDateString('es-CO', options);
+  };
+
+  const renderAvailability = (availability) => {
+    if (!availability || availability.length === 0) {
+      return <p className="no-availability">Sin disponibilidad registrada</p>;
+    }
+
+    const diasMap = {
+      'lunes': 'Lunes',
+      'martes': 'Martes',
+      'miercoles': 'Miércoles',
+      'jueves': 'Jueves',
+      'viernes': 'Viernes',
+      'sabado': 'Sábado',
+      'domingo': 'Domingo'
+    };
+
+    return (
+      <div className="availability-list">
+        {availability.map((slot, index) => (
+          <div key={index} className="availability-slot">
+            <span className="availability-day">{diasMap[slot.dia.toLowerCase()] || slot.dia}</span>
+            <span className="availability-time">{slot.hora_inicio} - {slot.hora_fin}</span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="service-card">
       <div className="service-image">
@@ -42,13 +74,31 @@ export default function ServiceCard({ service, onContactClick }) {
           <div>
             <h3 className="service-title">{service.title}</h3>
             <p className="service-category">{service.category}</p>
-            {service.usuario && (
-              <p className="service-provider">Por: {service.usuario.nombre || service.usuario}</p>
+            {service.workerName && (
+              <p className="service-provider">Por: {service.workerName}</p>
             )}
           </div>
           <span className={`service-status ${service.available ? 'status-available' : 'status-occupied'}`}>
             {service.available ? 'Disponible' : 'Ocupado'}
           </span>
+        </div>
+
+        {/* Información del trabajador */}
+        {service.workerExperience && (
+          <div className="worker-info">
+            <p className="worker-detail">
+              <span className="detail-label">Experiencia:</span>
+              <span className="detail-value">{service.workerExperience}</span>
+            </p>
+          </div>
+        )}
+
+        {/* Precio */}
+        <div className="service-details">
+          <div className="detail-item">
+            <span className="detail-label">Precio:</span>
+            <span className="detail-value price">${parseFloat(service.price).toFixed(2)}/hora</span>
+          </div>
         </div>
 
         <div className="service-rating">
@@ -58,6 +108,14 @@ export default function ServiceCard({ service, onContactClick }) {
           </div>
           <span className="rating-value">{service.rating.toFixed(1)}/5</span>
         </div>
+
+        {/* Disponibilidad del trabajador */}
+        {service.availability && service.availability.length > 0 && (
+          <div className="availability-section">
+            <span className="availability-label">Horarios disponibles:</span>
+            {renderAvailability(service.availability)}
+          </div>
+        )}
 
         <button onClick={onContactClick} className="contact-button" disabled={!service.available}>
           {service.available ? 'CONTACTAR' : 'NO DISPONIBLE'}
