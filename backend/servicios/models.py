@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.validators import MinValueValidator  
 from perfiles.models import PerfilTrabajador
 
 class Servicio(models.Model):
@@ -21,7 +22,11 @@ class Servicio(models.Model):
     descripcion = models.TextField()
     categoria = models.CharField(max_length=120)
 
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
+    precio = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2,
+        validators=[MinValueValidator(0.01)]  #subsanación
+    )
 
     foto_servicio = models.ImageField(upload_to="fotos_servicios/", blank=True, null=True)
 
