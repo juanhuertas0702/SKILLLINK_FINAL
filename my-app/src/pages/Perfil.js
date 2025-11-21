@@ -42,8 +42,10 @@ export default function Perfil() {
       });
     }
 
-    // Cargar calificaciones si es trabajador
-    cargarCalificaciones();
+    // Cargar calificaciones solo si es trabajador
+    if (user?.rol_base === 'trabajador') {
+      cargarCalificaciones();
+    }
   }, [user, isAuthenticated, navigate]);
 
   const cargarCalificaciones = async () => {
@@ -215,45 +217,47 @@ export default function Perfil() {
                 <p>{formData.descripcion || '-'}</p>
               </div>
 
-              {/* Sección de Calificaciones */}
-              <div className="calificaciones-section">
-                <h2>Mis Calificaciones</h2>
-                {cargandoCalificaciones ? (
-                  <p>Cargando calificaciones...</p>
-                ) : calificaciones.length > 0 ? (
-                  <div className="calificaciones-content">
-                    <div className="promedio-calificacion">
-                      <div className="promedio-numero">{promedioCalificacion.toFixed(1)}</div>
-                      <div className="promedio-info">
-                        <div className="promedio-stars">
-                          {renderStars(promedioCalificacion)}
+              {/* Sección de Calificaciones - Solo para trabajadores */}
+              {user?.rol_base === 'trabajador' && (
+                <div className="calificaciones-section">
+                  <h2>Mis Calificaciones</h2>
+                  {cargandoCalificaciones ? (
+                    <p>Cargando calificaciones...</p>
+                  ) : calificaciones.length > 0 ? (
+                    <div className="calificaciones-content">
+                      <div className="promedio-calificacion">
+                        <div className="promedio-numero">{promedioCalificacion.toFixed(1)}</div>
+                        <div className="promedio-info">
+                          <div className="promedio-stars">
+                            {renderStars(promedioCalificacion)}
+                          </div>
+                          <p className="promedio-texto">{calificaciones.length} {calificaciones.length === 1 ? 'calificación' : 'calificaciones'}</p>
                         </div>
-                        <p className="promedio-texto">{calificaciones.length} {calificaciones.length === 1 ? 'calificación' : 'calificaciones'}</p>
+                      </div>
+                      <div className="calificaciones-list">
+                        {calificaciones.map((cal) => (
+                          <div key={cal.id_calificacion} className="calificacion-item">
+                            <div className="calificacion-header">
+                              <div className="calificacion-user">
+                                <p className="user-name">{cal.cliente_nombre}</p>
+                                <div className="stars-small">
+                                  {renderStars(cal.puntaje)}
+                                </div>
+                              </div>
+                              <span className="calificacion-puntuacion">{cal.puntaje}/5</span>
+                            </div>
+                            {cal.comentario && (
+                              <p className="calificacion-comentario">"{cal.comentario}"</p>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
-                    <div className="calificaciones-list">
-                      {calificaciones.map((cal) => (
-                        <div key={cal.id_calificacion} className="calificacion-item">
-                          <div className="calificacion-header">
-                            <div className="calificacion-user">
-                              <p className="user-name">{cal.cliente_nombre}</p>
-                              <div className="stars-small">
-                                {renderStars(cal.puntaje)}
-                              </div>
-                            </div>
-                            <span className="calificacion-puntuacion">{cal.puntaje}/5</span>
-                          </div>
-                          {cal.comentario && (
-                            <p className="calificacion-comentario">"{cal.comentario}"</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : (
-                  <p className="sin-calificaciones">Aún no tienes calificaciones</p>
-                )}
-              </div>
+                  ) : (
+                    <p className="sin-calificaciones">Aún no tienes calificaciones</p>
+                  )}
+                </div>
+              )}
 
               <button onClick={() => setIsEditing(true)} className="edit-button">
                 Editar Perfil

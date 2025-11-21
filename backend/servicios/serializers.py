@@ -3,6 +3,7 @@ from .models import Servicio
 
 class ServicioSerializer(serializers.ModelSerializer):
     trabajador_id = serializers.IntegerField(source="trabajador.id_trabajador", read_only=True)
+    trabajador_calificacion = serializers.SerializerMethodField()
 
     class Meta:
         model = Servicio
@@ -17,8 +18,12 @@ class ServicioSerializer(serializers.ModelSerializer):
             "estado_publicacion",
             "palabras_detectadas",
             "fecha_publicacion",
+            "trabajador_calificacion"
         ]
         read_only_fields = ["estado_publicacion", "palabras_detectadas", "fecha_publicacion"]
+
+    def get_trabajador_calificacion(self, obj):
+        return obj.trabajador.rating_promedio()
 
 
 class ServicioPublicoSerializer(serializers.ModelSerializer):
@@ -47,7 +52,8 @@ class ServicioPublicoSerializer(serializers.ModelSerializer):
             "trabajador_experiencia",
             "trabajador_categoria",
             "fecha_publicacion",
-            "owner_id"
+            "owner_id",
+            "estado_publicacion"
         ]
 
     def get_trabajador_calificacion(self, obj):

@@ -43,18 +43,22 @@ export default function Home() {
         const listaServicios = data.results ? data.results : data;
         const imagenes = [plomeroImg, carpinteroImg, meseroImg];
         
-        const formattedServices = listaServicios.map((item, index) => ({
-          id: item.id_servicio,
-          title: item.titulo,
-          description: item.descripcion,
-          price: item.precio,
-          rating: item.trabajador_calificacion || 5.0, 
-          image: item.foto_servicio || imagenes[index % 3], 
-          available: true,
-          category: item.categoria,
-          workerName: item.trabajador_nombre,
-          ownerId: item.owner_id 
-        }));
+        const formattedServices = listaServicios
+          // ✅ FILTRAR SOLO SERVICIOS APROBADOS
+          .filter(item => item.estado_publicacion === 'aprobado')
+          .map((item, index) => ({
+            id: item.id_servicio,
+            title: item.titulo,
+            description: item.descripcion,
+            price: item.precio,
+            rating: item.trabajador_calificacion || 5.0, 
+            image: item.foto_servicio || imagenes[index % 3], 
+            available: true,
+            category: item.categoria,
+            workerName: item.trabajador_nombre,
+            ownerId: item.owner_id,
+            estado: item.estado_publicacion
+          }));
 
         setServices(formattedServices);
       } catch (error) {

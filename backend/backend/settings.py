@@ -156,7 +156,7 @@ SIMPLE_JWT = {
 
 AUTH_USER_MODEL = "usuarios.Usuario"
 
-GOOGLE_CLIENT_ID = "518870237722-9dkfv5vhk4ihag6fibohbvht1qqvrd6v.apps.googleusercontent.com"
+GOOGLE_CLIENT_ID = "372869493651-esot5lcj0qv5pj9nvk11lr5ii84pot8g.apps.googleusercontent.com"
 
 
 

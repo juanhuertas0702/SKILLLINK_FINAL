@@ -5,7 +5,7 @@ import { authAPI } from '../config/api';
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
-  const googleClientId = '849611241502-g3l0u40ljs8ebkgnhh9p7np8u4dv8j1u.apps.googleusercontent.com';
+  const googleClientId = process.env.REACT_APP_GOOGLE_CLIENT_ID || '849611241502-g3l0u40ljs8ebkgnhh9p7np8u4dv8j1u.apps.googleusercontent.com';
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
