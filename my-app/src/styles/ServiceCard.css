@@ -90,6 +90,22 @@
   color: #991b1b;
 }
 
+/* Descripción del servicio */
+.service-description {
+  background: #f9fafb;
+  padding: 0.75rem;
+  border-radius: 6px;
+  border-left: 3px solid #7c3aed;
+}
+
+.service-description p {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #4b5563;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
 /* Información del trabajador */
 .worker-info {
   background: #f8fafc;

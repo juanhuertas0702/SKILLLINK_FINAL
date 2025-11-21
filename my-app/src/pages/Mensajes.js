@@ -178,7 +178,7 @@ export default function Mensajes() {
   // Renderizar el contenido principal (Derecha)
   // Función para eliminar chat/solicitud
   const handleDeleteChat = async (id) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar este chat? No se puede deshacer.')) {
+    if (!window.confirm('¿Estás seguro de que deseas eliminar este chat?\n\nNota: Si ya has calificado, la calificación se mantendrá.')) {
       return;
     }
 

@@ -83,6 +83,13 @@ export default function ServiceCard({ service, onContactClick }) {
           </span>
         </div>
 
+        {/* Descripción del servicio */}
+        {service.description && (
+          <div className="service-description">
+            <p>{service.description}</p>
+          </div>
+        )}
+
         {/* Información del trabajador */}
         {service.workerExperience && (
           <div className="worker-info">

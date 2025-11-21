@@ -9,8 +9,10 @@ class Calificacion(models.Model):
 
     solicitud = models.OneToOneField(
         Solicitud,
-        on_delete=models.CASCADE,
-        related_name="calificacion"
+        on_delete=models.SET_NULL,
+        related_name="calificacion",
+        null=True,
+        blank=True
     )
 
     cliente = models.ForeignKey(
