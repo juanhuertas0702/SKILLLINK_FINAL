@@ -154,20 +154,24 @@ export default function Register() {
     if (validateForm()) {
       setLoading(true);
       try {
-        // Enviar datos básicos de registro
-        const registroData = {
-          nombre: formData.fullName,
-          email: formData.email,
-          password: formData.password,
-          ciudad: formData.city
-        };
+        // Crear FormData para enviar archivo y datos
+        const formDataToSend = new FormData();
+        formDataToSend.append('nombre', formData.fullName);
+        formDataToSend.append('email', formData.email);
+        formDataToSend.append('password', formData.password);
+        formDataToSend.append('ciudad', formData.city);
+        formDataToSend.append('departamento', formData.department);
+        formDataToSend.append('telefono', formData.phone);
+        formDataToSend.append('edad', formData.age || null);
+        
+        // Agregar foto si existe
+        if (formData.profilePhoto) {
+          formDataToSend.append('foto_perfil', formData.profilePhoto);
+        }
 
         const response = await fetch('http://localhost:8000/api/usuarios/registro/', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(registroData),
+          body: formDataToSend,
         });
 
         if (!response.ok) {

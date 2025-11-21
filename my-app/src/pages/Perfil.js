@@ -16,7 +16,11 @@ export default function Perfil() {
     ciudad: '',
     telefono: '',
     edad: '',
-    descripcion: ''
+    descripcion: '',
+    fecha_registro: '',
+    metodo_registro: '',
+    fecha_nacimiento: '',
+    foto_perfil: ''
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
@@ -38,7 +42,11 @@ export default function Perfil() {
         ciudad: user.ciudad || '',
         telefono: user.telefono || '',
         edad: user.edad || '',
-        descripcion: user.descripcion || ''
+        descripcion: user.descripcion || '',
+        fecha_registro: user.fecha_registro || '',
+        metodo_registro: user.metodo_registro || '',
+        fecha_nacimiento: user.fecha_nacimiento || '',
+        foto_perfil: user.foto_perfil || ''
       });
     }
 
@@ -169,10 +177,18 @@ export default function Perfil() {
         <div className="perfil-card">
           <div className="perfil-header">
             <div className="profile-avatar">
-              <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
+              {formData.foto_perfil ? (
+                <img 
+                  src={formData.foto_perfil} 
+                  alt="Foto de perfil" 
+                  className="profile-photo"
+                />
+              ) : (
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+              )}
             </div>
             <div className="perfil-title-section">
               <h1 className="perfil-title">{formData.nombre || 'Mi Perfil'}</h1>
@@ -215,6 +231,35 @@ export default function Perfil() {
               <div className="info-group">
                 <label>Descripción</label>
                 <p>{formData.descripcion || '-'}</p>
+              </div>
+
+              {/* Información de Registro */}
+              <div className="registration-info-section">
+                <h3>Información de Registro</h3>
+                <div className="info-group">
+                  <label>Fecha de Registro</label>
+                  <p>
+                    {formData.fecha_registro 
+                      ? new Date(formData.fecha_registro).toLocaleDateString('es-CO', { 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })
+                      : '-'}
+                  </p>
+                </div>
+                <div className="info-group">
+                  <label>Método de Registro</label>
+                  <p>{formData.metodo_registro === 'local' ? 'Email y Contraseña' : formData.metodo_registro || '-'}</p>
+                </div>
+                {formData.fecha_nacimiento && (
+                  <div className="info-group">
+                    <label>Fecha de Nacimiento</label>
+                    <p>{new Date(formData.fecha_nacimiento).toLocaleDateString('es-CO')}</p>
+                  </div>
+                )}
               </div>
 
               {/* Sección de Calificaciones - Solo para trabajadores */}

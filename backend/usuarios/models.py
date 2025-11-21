@@ -57,6 +57,9 @@ class Usuario(AbstractBaseUser, PermissionsMixin):
 
     fecha_nacimiento = models.DateField(blank=True, null=True)
     ciudad = models.CharField(max_length=120, blank=True, null=True)
+    departamento = models.CharField(max_length=120, blank=True, null=True)
+    telefono = models.CharField(max_length=20, blank=True, null=True)
+    edad = models.IntegerField(blank=True, null=True)
 
     estado = models.CharField(max_length=20, choices=ESTADOS, default="activo")
 

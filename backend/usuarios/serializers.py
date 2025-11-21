@@ -14,6 +14,9 @@ class UsuarioSerializer(serializers.ModelSerializer):
             "foto_perfil",
             "fecha_nacimiento",
             "ciudad",
+            "departamento",
+            "telefono",
+            "edad",
             "estado",
             "rol_base",
             "metodo_registro",
@@ -34,7 +37,7 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Usuario
-        fields = ["id_usuario", "nombre", "email", "password", "ciudad"]
+        fields = ["id_usuario", "nombre", "email", "password", "ciudad", "departamento", "telefono", "edad", "foto_perfil"]
 
     def create(self, validated_data):
         # Siempre se crea como usuario normal, metodo_registro = local
@@ -43,6 +46,10 @@ class RegistroUsuarioSerializer(serializers.ModelSerializer):
             email=validated_data["email"],
             nombre=validated_data["nombre"],
             ciudad=validated_data.get("ciudad"),
+            departamento=validated_data.get("departamento"),
+            telefono=validated_data.get("telefono"),
+            edad=validated_data.get("edad"),
+            foto_perfil=validated_data.get("foto_perfil"),
             rol_base=Usuario.ROL_USUARIO,
             metodo_registro="local",
         )
