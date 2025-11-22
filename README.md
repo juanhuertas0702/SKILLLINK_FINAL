@@ -1,5 +1,5 @@
 # SKILLLINK
 Proyecto de Ingeniería de software 1
 
-# Documentacion
+# Documentación
 [Ver documentación con Swagger](https://skilllink-backend-6rc8.onrender.com)
